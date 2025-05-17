@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("Popup: DOMContentLoaded.");
+    //console.log("Popup: DOMContentLoaded.");
 
     const actionButton = document.getElementById('calculate-button'); 
     const loadingSpinner = document.querySelector('.loading-spinner');
@@ -44,13 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateUI("processing"); // Default to processing
                 break;
         }
-        console.log(`Popup: UI updated to state: ${state}, Action: ${currentAction}, Class for reopen: ${classNameForReopen}`);
+        //console.log(`Popup: UI updated to state: ${state}, Action: ${currentAction}, Class for reopen: ${classNameForReopen}`);
     }
 
     if (actionButton) {
         actionButton.addEventListener('click', () => {
             if (currentAction === "save") {
-                console.log("Popup: 'Save & View Grades' clicked. Sending userConfirmedSaveAndOpen.");
+                //console.log("Popup: 'Save & View Grades' clicked. Sending userConfirmedSaveAndOpen.");
                 // Temporarily update UI to give feedback
                 processingTextElement.textContent = "Saving and opening...";
                 actionButton.disabled = true;
@@ -62,13 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         actionButton.disabled = false;
                         // checkTabStatus(currentTabId) might be good here to refresh based on actual state
                     } else {
-                        console.log("Popup: 'userConfirmedSaveAndOpen' sent. Background will handle opening.");
+                        //console.log("Popup: 'userConfirmedSaveAndOpen' sent. Background will handle opening.");
                         // The popup might close before storage.onChanged updates it, or background opens new tab.
                         // No specific UI change needed here post-send, rely on storage change or window close.
                     }
                 });
             } else if (currentAction === "reopen" && classNameForReopen) {
-                console.log(`Popup: 'Reopen Grades' clicked for class ${classNameForReopen}.`);
+                //console.log(`Popup: 'Reopen Grades' clicked for class ${classNameForReopen}.`);
                 const gradesPageUrl = chrome.runtime.getURL('../src/grades.html') + '?className=' + encodeURIComponent(classNameForReopen);
                 chrome.tabs.create({ url: gradesPageUrl });
                 window.close(); // Close popup after action
@@ -95,13 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const savedClass = result[classKey];
 
             if (status === "saved_and_opened") {
-                console.log(`Popup (initial check): Tab ${tabId} status is 'saved_and_opened' for class '${savedClass}'.`);
+                //console.log(`Popup (initial check): Tab ${tabId} status is 'saved_and_opened' for class '${savedClass}'.`);
                 updateUI("saved_and_opened", savedClass);
             } else if (status === "processed") {
-                console.log(`Popup (initial check): Tab ${tabId} status is 'processed'.`);
+                //console.log(`Popup (initial check): Tab ${tabId} status is 'processed'.`);
                 updateUI("processed");
             } else {
-                console.log(`Popup (initial check): Tab ${tabId} has no specific status ('${status}'). Defaulting to 'processing'.`);
+                //console.log(`Popup (initial check): Tab ${tabId} has no specific status ('${status}'). Defaulting to 'processing'.`);
                 updateUI("processing");
             }
         });
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if the status for the current tab has changed
             if (changes[statusKey]) {
                 const newStatus = changes[statusKey].newValue;
-                console.log(`Popup (storage change): Tab ${currentTabId} status changed to '${newStatus}'.`);
+                //console.log(`Popup (storage change): Tab ${currentTabId} status changed to '${newStatus}'.`);
                 if (newStatus === "saved_and_opened") {
                     // Status changed to saved_and_opened, need to get the class name
                     chrome.storage.session.get(classKey, (result) => {
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             console.error("Popup: Error getting class name on status change:", chrome.runtime.lastError.message);
                             updateUI("saved_and_opened", null); // Show generic reopen if class name fetch fails
                         } else {
-                            console.log(`Popup (storage change): Class name for 'saved_and_opened' is '${result[classKey]}'.`);
+                            //console.log(`Popup (storage change): Class name for 'saved_and_opened' is '${result[classKey]}'.`);
                             updateUI("saved_and_opened", result[classKey]);
                         }
                     });
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // If only the class name changed, but status remains 'saved_and_opened' (less common)
             else if (changes[classKey] && currentAction === "reopen") {
                  const newClassName = changes[classKey].newValue;
-                 console.log(`Popup (storage change): ClassName for tab ${currentTabId} updated to ${newClassName} while status is 'saved_and_opened'.`);
+                 //console.log(`Popup (storage change): ClassName for tab ${currentTabId} updated to ${newClassName} while status is 'saved_and_opened'.`);
                  updateUI("saved_and_opened", newClassName);
             }
         }

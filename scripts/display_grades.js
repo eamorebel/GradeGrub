@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const debouncedSaveAllClassesData = debounce(() => {
         chrome.storage.local.set({ 'allClassesData': globalAllClassesData }, () => {
-            console.log('All classes data saved to storage via debounce. Data:', globalAllClassesData);
+            //console.log('All classes data saved to storage via debounce. Data:', globalAllClassesData);
         });
     }, 1000);
 
@@ -270,12 +270,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (overallGradeContainer) overallGradeContainer.style.display = 'none';
             if (overallGradeDisplay) overallGradeDisplay.textContent = 'Select a class and ensure weights are set.';
             if (unweightedTotalDisplay) unweightedTotalDisplay.textContent = '';
-            console.log("No class selected for overall grade display.");
+            //console.log("No class selected for overall grade display.");
             return;
         }
 
         const gradeData = calculateOverallFinalGrade();
-        console.log("Overall grade data:", gradeData);
+        //console.log("Overall grade data:", gradeData);
 
         if (overallGradeContainer) overallGradeContainer.style.display = 'block';
 
@@ -397,11 +397,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const classSettingsKey = className + '_settings';
         if (!globalAllClassesData[classSettingsKey]) {
             globalAllClassesData[classSettingsKey] = { categoryCalcMethods: {}, categoryDrops: {}, gradeCutoffs: {...DEFAULT_GRADE_CUTOFFS} };
-            console.log(`No settings found for ${className}. Created default settings.`);
+            //console.log(`No settings found for ${className}. Created default settings.`);
         } else {
             if (!globalAllClassesData[classSettingsKey].gradeCutoffs || Object.keys(globalAllClassesData[classSettingsKey].gradeCutoffs).length === 0) {
                  globalAllClassesData[classSettingsKey].gradeCutoffs = { ...DEFAULT_GRADE_CUTOFFS };
-                 console.log(`Grade cutoffs missing or empty for ${className}, applying defaults.`);
+                 //console.log(`Grade cutoffs missing or empty for ${className}, applying defaults.`);
             }
         }
 
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!classSettings.categoryCalcMethods) classSettings.categoryCalcMethods = {};
         if (!classSettings.categoryDrops) classSettings.categoryDrops = {}; // Initialize drops
 
-        console.log(`Displaying grades for ${className}:`, currentClassData);
+        console.log(`[GradeGrub]: Displaying grades for ${className}:`, currentClassData);
         gradesOutput.innerHTML = '';
 
         if (className && currentClassData) {
@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gradeCutoffManagerDiv) gradeCutoffManagerDiv.style.display = 'block';
             if (whatIfCalculatorDiv) whatIfCalculatorDiv.style.display = 'block';
 
-            console.log("[displayGradesForClass] About to render cutoff inputs and populate what-if selector.");
+            //console.log("[displayGradesForClass] About to render cutoff inputs and populate what-if selector.");
             renderGradeCutoffInputs();
             populateWhatIfAssignmentSelector();
 
@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentClassData = globalAllClassesData[currentClassName];
 
         debouncedSaveAllClassesData();
-        console.log("New assignment added via form, re-displaying class.");
+        //console.log("New assignment added via form, re-displaying class.");
         displayGradesForClass(currentClassName, globalAllClassesData); // Re-render
     }
 
@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
         globalAllClassesData[settingsKey].categoryCalcMethods[newCategoryName] = 'totalPoints';
         
         debouncedSaveAllClassesData();
-        console.log(`Category "${newCategoryName}" prepared. Re-displaying class.`);
+        //console.log(`Category "${newCategoryName}" prepared. Re-displaying class.`);
         displayGradesForClass(currentClassName, globalAllClassesData); // Re-render
     }
 
@@ -647,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // and we're using originalIndex from that full array, splice should be correct here.
 
             debouncedSaveAllClassesData();
-            console.log(`Assignment "${assignmentToDelete.name}" deleted.`);
+            //console.log(`Assignment "${assignmentToDelete.name}" deleted.`);
             
             // Re-render to reflect changes and update totals.
             // Or, for better performance, just remove the DOM element and update its category total.
@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             debouncedSaveAllClassesData();
-            console.log(`Category "${categoryName}" and its assignments deleted.`);
+            //console.log(`Category "${categoryName}" and its assignments deleted.`);
             
             // Re-render the entire class display
             displayGradesForClass(currentClassName, globalAllClassesData);
@@ -699,13 +699,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderGradeCutoffInputs() {
         // Log the state of currentClassCutoffs at the beginning of this function
-        console.log('[renderGradeCutoffInputs] Called. Current cutoffs to render:', JSON.parse(JSON.stringify(currentClassCutoffs)));
+        //console.log('[renderGradeCutoffInputs] Called. Current cutoffs to render:', JSON.parse(JSON.stringify(currentClassCutoffs)));
 
         if (!cutoffInputsContainer) {
             console.error("[renderGradeCutoffInputs] Error: cutoffInputsContainer element not found in DOM.");
             return;
         }
-        console.log(cutoffInputsContainer.innerHTML); //check internals
+        //console.log(cutoffInputsContainer.innerHTML); //check internals
         cutoffInputsContainer.innerHTML = ''; // Clear previous inputs to prevent duplication
 
         // Check if currentClassCutoffs has any keys. If not, it might indicate an issue upstream.
@@ -733,10 +733,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 input.id = `cutoff-${grade}`;
 
                 const numPercentage = parseFloat(percentage);
-                console.log(`[renderGradeCutoffInputs] Processing grade ${grade} with percentage: ${percentage} (parsed as ${numPercentage})`);
+                //console.log(`[renderGradeCutoffInputs] Processing grade ${grade} with percentage: ${percentage} (parsed as ${numPercentage})`);
                 if (!isNaN(numPercentage)) {
                     const valueStr = numPercentage.toFixed(2);
-                    console.log(`[renderGradeCutoffInputs] Setting input value for ${grade} to: ${valueStr}`);
+                    //console.log(`[renderGradeCutoffInputs] Setting input value for ${grade} to: ${valueStr}`);
                     input.value = valueStr; // This sets the property that the input displays
                 } else {
                     input.value = '';
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 cutoffInputsContainer.appendChild(div);
             });
-        console.log('[renderGradeCutoffInputs] Finished rendering cutoff inputs.');
+        //console.log('[renderGradeCutoffInputs] Finished rendering cutoff inputs.');
     }
 
     function handleCutoffInputChange(event) {
@@ -771,16 +771,16 @@ document.addEventListener('DOMContentLoaded', () => {
         currentClassCutoffs[grade] = value;
         event.target.value = value; // Update input field with sanitized value
         // No automatic save, user must click "Save Custom Cutoffs"
-        console.log('[handleCutoffInputChange] Cutoffs updated in memory:', currentClassCutoffs);
+        //console.log('[handleCutoffInputChange] Cutoffs updated in memory:', currentClassCutoffs);
     }
 
     function saveCustomCutoffs() {
         if (!currentClassNameForDisplay) return;
-        console.log('[saveCustomCutoffs] Saving cutoffs:', currentClassCutoffs);
+        //console.log('[saveCustomCutoffs] Saving cutoffs:', currentClassCutoffs);
         const classSettingsKey = currentClassNameForDisplay + '_settings';
         if (!globalAllClassesData[classSettingsKey]) {
             globalAllClassesData[classSettingsKey] = { categoryCalcMethods: {}, categoryDrops: {}, gradeCutoffs: {...DEFAULT_GRADE_CUTOFFS}};
-            console.log(`[displayGradesForClass] Grade cutoffs missing or empty for ${className}, applying defaults.`);
+            //console.log(`[displayGradesForClass] Grade cutoffs missing or empty for ${className}, applying defaults.`);
         }
         globalAllClassesData[classSettingsKey].gradeCutoffs = { ...currentClassCutoffs };
         debouncedSaveAllClassesData();
@@ -789,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateWhatIfAssignmentSelector() {
-        console.log('[populateWhatIfAssignmentSelector] Called.');
+        //console.log('[populateWhatIfAssignmentSelector] Called.');
         if (!whatIfAssignmentSelector || !currentClassData) {
             console.warn("[populateWhatIfAssignmentSelector] Selector or currentClassData not available.");
             if(whatIfAssignmentSelector) whatIfAssignmentSelector.innerHTML = '<option value="">--No Class Data--</option>';
@@ -819,14 +819,14 @@ document.addEventListener('DOMContentLoaded', () => {
         whatIfAssignmentSelector.onchange = () => {
             calculateNeededForCutoffsButton.disabled = !whatIfAssignmentSelector.value;
             whatIfResultsDisplay.innerHTML = ''; // Clear previous results on new selection
-            console.log('[populateWhatIfAssignmentSelector] What-if assignment selected, index:', whatIfAssignmentSelector.value);
+            //console.log('[populateWhatIfAssignmentSelector] What-if assignment selected, index:', whatIfAssignmentSelector.value);
         };
-        console.log('[populateWhatIfAssignmentSelector] Finished populating selector.');
+        //console.log('[populateWhatIfAssignmentSelector] Finished populating selector.');
     }
 
     function resetDefaultCutoffs() {
         if (!currentClassNameForDisplay) return;
-        console.log('[resetDefaultCutoffs] Resetting to defaults.');
+        //console.log('[resetDefaultCutoffs] Resetting to defaults.');
         if (confirm("Are you sure you want to reset cutoffs to their default values?")) {
             currentClassCutoffs = { ...DEFAULT_GRADE_CUTOFFS };
             // Also save this reset to storage
@@ -850,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * neededScore is null if not possible or assignment invalid.
      */
     function calculateMinScoreForAssignment(targetAssignmentOriginalIndex, desiredOverallGrade, extraCreditPercent) {
-        console.log(`[calculateMinScoreForAssignment] Index: ${targetAssignmentOriginalIndex}, Desired Overall: ${desiredOverallGrade}%`);
+        //console.log(`[calculateMinScoreForAssignment] Index: ${targetAssignmentOriginalIndex}, Desired Overall: ${desiredOverallGrade}%`);
         if (!currentClassData || targetAssignmentOriginalIndex < 0 || targetAssignmentOriginalIndex >= currentClassData.length) {
             console.error("[calculateMinScoreForAssignment] Invalid target assignment index or no class data.");
             return { neededScore: null, pointsPossible: null, isPossible: false, finalGradeAchieved: null };

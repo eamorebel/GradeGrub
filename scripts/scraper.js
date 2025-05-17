@@ -1,5 +1,5 @@
 (function() {
-    console.log("scraper.js content script loaded.");
+    console.log("[GradeGrub]: scraper script loaded.");
 
     function getClassName() {
         try {
@@ -11,7 +11,7 @@
                 if (courseNameElement) {
                      let className = courseNameElement.textContent.trim();
                      if (className && className !== "Loading..." && className.length > 0 && !className.startsWith("Home") && className !== "Grades") {
-                        console.log("Class name found (primary method):", className);
+                        //console.log("Class name found (primary method):", className);
                         return className;
                     }
                 }
@@ -28,7 +28,7 @@
                             potentialClassName.toLowerCase() !== "grades" && // Double check text content
                             potentialClassName.toLowerCase() !== "home" &&
                             potentialClassName.length > 0 && potentialClassName !== "Loading...") {
-                            console.log("Class name found (fallback method):", potentialClassName);
+                            //console.log("Class name found (fallback method):", potentialClassName);
                             return potentialClassName;
                         }
                     }
@@ -158,7 +158,7 @@
     function scrapeCategoryWeights() {
         const weightsTable = document.querySelector('table.summary'); // Selector for the weights table
         if (!weightsTable) {
-            console.log("No category weights table (table.summary) found on this page.");
+            //console.log("No category weights table (table.summary) found on this page.");
             return null;
         }
 
@@ -188,7 +188,7 @@
         });
 
         if (Object.keys(weights).length > 0) {
-            console.log("Scraped category weights:", weights);
+            //console.log("Scraped category weights:", weights);
             return weights;
         }
         return null; // Return null if no weights were actually parsed
@@ -198,9 +198,9 @@
     const grades = scrapeGrades();
     const categoryWeights = scrapeCategoryWeights();
 
-    console.log(`Scraper: Data prepared for class "${className}"`);
+    //console.log(`Scraper: Data prepared for class "${className}"`);
     if (categoryWeights) {
-        console.log("Scraper: Category weights found:", categoryWeights);
+        //console.log("Scraper: Category weights found:", categoryWeights);
     }
 
     if (chrome && chrome.runtime && chrome.runtime.sendMessage) {
@@ -215,6 +215,6 @@
         // Notify popup that processing/scraping part is done
         chrome.runtime.sendMessage({ action: "processingDone" });
     } else {
-        console.log("chrome.runtime.sendMessage not available. Data logged above.");
+        //console.log("chrome.runtime.sendMessage not available. Data logged above.");
     }
 })();
