@@ -1,20 +1,4 @@
-body {
-  font-family: "Atkinson Hyperlegible", sans-serif;
-  font-size: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 150px;
-  padding: 20px;
-  background-color: #f4f4f4;
-}
-
 #app {
-  background-color: #fff;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
   width: 350px;
 }
 
@@ -39,19 +23,20 @@ body {
 }
 
 #calculate-button {
-    background-color: #28a745;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: "Atkinson Hyperlegible", sans-serif;
-    font-size: 1em;
-    margin-top: 20px;
-    display: block;
-    margin-left: auto; margin-right: auto;
-  }
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 1em;
+  margin-top: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
 
 #calculate-button:hover {
-    background-color: #1e7e34;
+  background-color: #1e7e34;
 }
