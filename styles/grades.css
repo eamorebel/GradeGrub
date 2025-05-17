@@ -5,6 +5,13 @@ body {
   background-color: #f4f4f4;
 }
 
+input,
+select,
+button { 
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: inherit;
+}
+
 #grades-container {
   background-color: #fff;
   padding: 20px;
@@ -14,7 +21,9 @@ body {
 
 .grade-group {
   margin-bottom: 20px;
-  border-bottom: 1px solid #ccc;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
   padding-bottom: 15px;
 }
 
@@ -30,12 +39,6 @@ body {
   font-weight: bold;
 }
 
-.grade-group {
-  margin-bottom: 20px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
 .grade-group h3 {
   margin-top: 0;
   color: #333;
@@ -251,25 +254,17 @@ body {
     color: #ff0000; /* Brighter red on hover */
 }
 
-/* Category Header Delete Icon */
 .category-header {
-    position: relative; /* To position the delete icon absolutely within it if needed */
-    /* ... other styles ... */
+    position: relative; 
 }
 .delete-category-icon {
-    /* Position it in the top-right of the category header */
-    /* This might need adjustment based on your .category-header layout (flex, grid, etc.) */
-    /* If using flex on .category-header, you can just add it as another flex item */
-    /* For absolute positioning: */
     position: absolute;
     top: 5px;
     right: 5px;
 }
 
-/* Assignment Delete Icon (hover effect) */
 .assignment {
-    position: relative; /* Needed for positioning the icon if it's absolute */
-    /* ... other styles ... */
+    position: relative; 
     padding-right: 30px; /* Make space for the icon if it's inline and was overlapping */
 }
 
@@ -277,9 +272,7 @@ body {
     visibility: hidden; /* Hidden by default */
     opacity: 0;
     transition: visibility 0s, opacity 0.2s linear;
-    /* Position it to the right of the assignment details */
-    /* Could be absolute or just part of the flex/grid layout of .assignment */
-    margin-left: auto; /* Pushes it to the far right if .assignment is flex */
+    margin-left: auto; 
 }
 
 .assignment:hover .delete-assignment-icon {
@@ -315,7 +308,6 @@ body {
     color: #000;
 }
 
-/* Category header styling for new input */
 .category-header {
     display: flex; /* If not already flex */
     align-items: center; /* Align items vertically */
@@ -375,14 +367,12 @@ body {
     color: #777; /* Ensure text color is readable with strikethrough and background */
 }
 
-/* Make sure child elements also appear struck-through and with appropriate color */
 .assignment.dropped-assignment .assignment-name,
 .assignment.dropped-assignment .editable-grade,
-.assignment.dropped-assignment .assignment-score-input, /* Target inputs specifically if needed */
+.assignment.dropped-assignment .assignment-score-input, 
 .assignment.dropped-assignment .assignment-points-input,
 .assignment.dropped-assignment span { /* Generic span if you have other text */
-    color: #777 !important; /* Use important if other styles override, but try without first */
-    /* text-decoration: line-through; */ /* Usually inherits, but can be explicit if needed */
+    color: #777 !important; 
 }
 
 /* You might want to ensure inputs within dropped assignments are also visually de-emphasized */
@@ -460,3 +450,4 @@ body {
     color: #555;
     font-size: 0.9em;
 }
+

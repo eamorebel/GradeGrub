@@ -48,6 +48,8 @@ body {
     font-family: "Atkinson Hyperlegible", sans-serif;
     font-size: 1em;
     margin-top: 20px;
+    display: block;
+    margin-left: auto; margin-right: auto;
   }
 
 #calculate-button:hover {
