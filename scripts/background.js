@@ -84,16 +84,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         });
     }
-    //console.log("Background: Data is pending user confirmation.", pendingScrapedData);
+    console.log("Background: Data is pending user confirmation.", pendingScrapedData);
     sendResponse({ status: "pending data held" }); // Acknowledge
 
   } else if (request.action === "userConfirmedSaveAndOpen") {
-      //console.log("Background: Received userConfirmedSaveAndOpen.");
+      console.log("Background: Received userConfirmedSaveAndOpen.");
       chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
           const currentActiveTabId = activeTabs[0]?.id;
 
           if (pendingScrapedData && pendingScrapedData.tabId === currentActiveTabId) {
-              //console.log("Background: Committing pending data for class:", pendingScrapedData.className);
+              console.log("Background: Committing pending data for class:", pendingScrapedData.className);
               const { className, data: newAssignments, categoryWeights: newCategoryWeights } = pendingScrapedData;
               const tabIdToUpdate = pendingScrapedData.tabId; // Capture tabId
 
@@ -159,13 +159,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                   }
                   
                   chrome.storage.local.set({ 'allClassesData': allClasses }, () => {
-                      //console.log(`Background: Data for "${className}" committed and cleaned in storage.`);
+                      console.log(`Background: Data for "${className}" committed and cleaned in storage.`);
                       if (tabIdToUpdate) {
                           const sessionUpdate = {};
                           sessionUpdate[`tabStatus_${tabIdToUpdate}`] = "saved_and_opened";
                           sessionUpdate[`savedClassNameForTab_${tabIdToUpdate}`] = className; // Store the class name
                           chrome.storage.session.set(sessionUpdate, () => {
-                              //console.log(`Background: Tab ${tabIdToUpdate} status set to 'saved_and_opened' for class ${className}.`);
+                              console.log(`Background: Tab ${tabIdToUpdate} status set to 'saved_and_opened' for class ${className}.`);
                           });
                       }
                       pendingScrapedData = null; 
@@ -180,6 +180,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
     });
   } else if (request.action === "processingDone") {
-    //console.log("Background: processingDone signal received. Tab ID:", sender.tab?.id);
+    console.log("Background: processingDone signal received. Tab ID:", sender.tab?.id);
   }
+  return true; // Keep the message channel open for sendResponse
 });

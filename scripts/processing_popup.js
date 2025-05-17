@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (state) {
             case "processing":
                 loadingSpinner.style.display = 'block';
-                processingTextElement.textContent = "Processing grades from current page...";
+                processingTextElement.textContent = "Scraping grades ... please wait";
                 actionButton.style.display = 'none';
                 actionButton.textContent = "Process"; // Default text, though hidden
                 currentAction = null;
@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
             case "saved_and_opened":
                 loadingSpinner.style.display = 'none';
                 classNameForReopen = className; // Store for the button click
-                processingTextElement.textContent = `Grades for "${className || 'this class'}" are saved.`;
-                actionButton.textContent = `Reopen Grades for ${className || 'Class'}`;
+                processingTextElement.textContent = `Grades for "${className || 'this class'}" are saved. Relaod to rescrape.`;
+                actionButton.textContent = `Reopen Grades`;
                 actionButton.style.display = 'block';
                 currentAction = "reopen";
-                break;
+                break;      
             default:
                 console.warn("Popup: Unknown UI state requested:", state);
                 updateUI("processing"); // Default to processing
