@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Grade Grub",
-    "description": "Calculate grade cutoffs for Canvas courses",
+    "description": "Canvas grade cutoff calculator with what-if analysis.",
     "version": "1.0.0",
     "icons": {
         "16": "images/icon-16.png",
