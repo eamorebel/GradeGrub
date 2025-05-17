@@ -21,7 +21,7 @@
             "128": "images/icon-128.png"
         }
     },
-    "permissions": ["activeTab", "scripting", "storage"],
+    "permissions": ["activeTab", "storage"],
     "host_permissions": ["https://*.instructure.com/*"],
     "content_scripts": [
         {

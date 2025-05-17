@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch (state) {
             case "processing":
                 loadingSpinner.style.display = 'block';
-                processingTextElement.textContent = "Scraping grades ... please wait";
+                processingTextElement.textContent = "Scraping grades ...";
                 actionButton.style.display = 'none';
                 actionButton.textContent = "Process"; // Default text, though hidden
                 currentAction = null;
