@@ -1,0 +1,462 @@
+body {
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 15px;
+  padding: 20px;
+  background-color: #f4f4f4;
+}
+
+#grades-container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.grade-group {
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 15px;
+}
+
+.grade-group h3 {
+  margin-top: 0;
+}
+
+.assignment {
+  margin-bottom: 5px;
+}
+
+.assignment span {
+  font-weight: bold;
+}
+
+.grade-group {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.grade-group h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+.assignment-name {
+  font-weight: bold;
+}
+.assignment-score {
+  color: green; /* Or based on performance */
+}
+.assignment-points {
+  color: #555;
+}
+/* CSS for optional stats */
+.assignment-stats {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 15px;
+}
+.assignment-stats span {
+  margin-right: 10px;
+}
+
+/* Example CSS - Adjust as needed */
+.assignment {
+  display: flex; /* Helps align items */
+  align-items: center; /* Vertically align items in the assignment row */
+  margin-bottom: 8px;
+  padding: 5px;
+  background-color: #f9f9f9;
+  border-radius: 3px;
+}
+.assignment-name {
+  font-weight: bold;
+  margin-right: 5px;
+  flex-basis: 50%; /* Give it some base width */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editable-grade {
+  width: 70px; /* Adjust width as needed */
+  padding: 4px;
+  margin: 0 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  text-align: right;
+}
+.assignment-stats {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 15px;
+  flex-grow: 1; /* Allow stats to take remaining space */
+}
+.assignment-stats span {
+  margin-right: 10px;
+  display: inline-block; /* Or block for stacking */
+}
+.grade-group h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+.grade-group {
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.category-header {
+  margin-bottom: 10px;
+  padding-left: 5px;
+}
+.category-weight-input {
+  width: 60px;
+  margin-left: 5px;
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+.category-content {
+  padding-left: 15px; /* Indent assignments under category header */
+}
+
+#delete-class-button {
+  /* Example styles */
+  background-color: #f44336; /* Red */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#delete-class-button:hover {
+  background-color: #d32f2f; /* Darker red */
+}
+
+.add-assignment-button, .action-button {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s ease;
+}
+.add-assignment-button:hover, .action-button:hover {
+    background-color: #45a049;
+}
+.secondary-button {
+    background-color: #888;
+}
+.secondary-button:hover {
+    background-color: #666;
+}
+
+.add-new-category-container {
+    margin-top: 20px;
+    padding: 15px;
+    border-top: 2px solid #007bff; /* A different color to distinguish */
+    background-color: #f0f8ff; /* Light alice blue */
+}
+.add-new-category-container h4 {
+    margin-top: 0;
+    color: #0056b3;
+}
+#add-category-form {
+    margin-top:10px;
+    padding:15px; /* More padding */
+    border:5px solid #aed9fa; /* Light blue border */
+    background-color: #e7f0f7; /* Lighter shade */
+    border-radius: 5px;
+}
+#new-category-name {
+    display: block; /* Make input take full width */
+    width: calc(100% - 22px); /* Account for padding */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+#add-category-form button {
+    margin-right: 10px;
+}
+
+.add-item-form { /* Common style for add category and add assignment forms */
+    margin-top: 15px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+.add-item-form h5 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+.add-item-form label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 0.9em;
+    color: #555;
+}
+.add-item-form input[type="text"],
+.add-item-form input[type="number"] {
+    width: calc(100% - 16px); /* Account for padding */
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.add-item-form button {
+    margin-right: 8px;
+}
+
+/* Specific button to show the form */
+.show-add-assignment-form {
+    /* Your existing .action-button styles might cover this, or add specific ones */
+    /* For example, make it less prominent than main action buttons */
+    background-color: #6c757d; /* A more subtle color */
+    font-size: 0.9em;
+    padding: 6px 10px;
+}
+.show-add-assignment-form:hover {
+    background-color: #5a6268;
+}
+
+/* General styling for delete icons */
+.delete-icon {
+    cursor: pointer;
+    font-size: 1.1em; /* Adjust size as needed */
+    color: #cc0000; /* Red color for deletion */
+    margin-left: 10px;
+    display: inline-block; /* Or inline-flex for better alignment with text */
+    vertical-align: middle;
+}
+.delete-icon:hover {
+    color: #ff0000; /* Brighter red on hover */
+}
+
+/* Category Header Delete Icon */
+.category-header {
+    position: relative; /* To position the delete icon absolutely within it if needed */
+    /* ... other styles ... */
+}
+.delete-category-icon {
+    /* Position it in the top-right of the category header */
+    /* This might need adjustment based on your .category-header layout (flex, grid, etc.) */
+    /* If using flex on .category-header, you can just add it as another flex item */
+    /* For absolute positioning: */
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+/* Assignment Delete Icon (hover effect) */
+.assignment {
+    position: relative; /* Needed for positioning the icon if it's absolute */
+    /* ... other styles ... */
+    padding-right: 30px; /* Make space for the icon if it's inline and was overlapping */
+}
+
+.delete-assignment-icon {
+    visibility: hidden; /* Hidden by default */
+    opacity: 0;
+    transition: visibility 0s, opacity 0.2s linear;
+    /* Position it to the right of the assignment details */
+    /* Could be absolute or just part of the flex/grid layout of .assignment */
+    margin-left: auto; /* Pushes it to the far right if .assignment is flex */
+}
+
+.assignment:hover .delete-assignment-icon {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* For manually excluded assignments */
+.assignment.excluded-assignment {
+    opacity: 0.5;
+    background-color: #f0f0f0; /* Light gray background */
+    /* text-decoration: line-through; */ /* Optional: adds a strikethrough */
+}
+
+.assignment.excluded-assignment .assignment-name,
+.assignment.excluded-assignment .editable-grade {
+    color: #777;  /* Darker gray text if needed */
+}
+
+/* Style for the toggle icons (delete, exclude) */
+.toggle-icon, .delete-icon {
+    cursor: pointer;
+    margin-left: 8px;
+    font-size: 1.1em;
+    display: inline-block; /* Helps with hover and layout */
+    padding: 2px 4px;
+    border-radius: 3px;
+    user-select: none; /* Prevent text selection on click */
+}
+
+.toggle-icon:hover, .delete-icon:hover {
+    background-color: #e0e0e0; /* Light background on hover */
+    color: #000;
+}
+
+/* Category header styling for new input */
+.category-header {
+    display: flex; /* If not already flex */
+    align-items: center; /* Align items vertically */
+    flex-wrap: wrap; /* Allow wrapping if space is tight */
+}
+
+.category-header label {
+    margin-right: 5px;
+}
+
+.category-header .category-drops-input {
+    margin-right: 15px; /* Space after drops input */
+    width: 45px; /* Smaller width for drops input */
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+.category-header .category-weight-input {
+    width: 60px; /* Adjust as needed */
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.category-header .calculation-method-selector {
+    margin-left: auto; /* Push calc method and total to the right if using flex */
+    margin-right: 15px;
+}
+.category-header .category-total-display {
+    margin-left: 10px; /* If calc method is not pushed, or to space from it */
+}
+
+
+/* Ensure icons are visible on hover within an assignment row */
+.assignment .toggle-icon,
+.assignment .delete-icon {
+    visibility: hidden; /* Hidden by default */
+    opacity: 0.6;
+}
+
+.assignment:hover .toggle-icon,
+.assignment:hover .delete-icon {
+    visibility: visible; /* Visible on hover of the assignment row */
+}
+
+/* If an assignment is excluded, you might want its exclude icon to always be visible */
+.assignment.excluded-assignment .toggle-exclude-assignment-icon {
+    visibility: visible;
+    opacity: 1; /* Full opacity if always visible */
+}
+
+/* For automatically dropped assignments */
+.assignment.dropped-assignment {
+    opacity: 0.65; /* Slightly different opacity or same as excluded */
+    background-color: #fff0f0; /* A light reddish/pinkish tint to differentiate from grey excluded */
+    text-decoration: line-through;
+    color: #777; /* Ensure text color is readable with strikethrough and background */
+}
+
+/* Make sure child elements also appear struck-through and with appropriate color */
+.assignment.dropped-assignment .assignment-name,
+.assignment.dropped-assignment .editable-grade,
+.assignment.dropped-assignment .assignment-score-input, /* Target inputs specifically if needed */
+.assignment.dropped-assignment .assignment-points-input,
+.assignment.dropped-assignment span { /* Generic span if you have other text */
+    color: #777 !important; /* Use important if other styles override, but try without first */
+    /* text-decoration: line-through; */ /* Usually inherits, but can be explicit if needed */
+}
+
+/* You might want to ensure inputs within dropped assignments are also visually de-emphasized */
+.assignment.dropped-assignment input[type="number"] {
+    border-color: #ddd;
+    background-color: #f9f9f9; /* Slightly off-white */
+}
+
+/* Add to your existing grades.css */
+
+#grade-cutoff-manager, #what-if-calculator {
+    background-color: #f9f9f9;
+    margin-top: 25px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+}
+
+#grade-cutoff-manager h3, #what-if-calculator h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+#cutoff-inputs-container div {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+#cutoff-inputs-container label {
+    margin-right: 5px;
+    font-weight: normal;
+    min-width: 40px; /* Adjust as needed */
+}
+
+#cutoff-inputs-container input[type="number"] {
+    width: 70px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+#what-if-calculator label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#what-if-assignment-selector {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+#what-if-results-display ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+#what-if-results-display li {
+    padding: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95em;
+}
+#what-if-results-display li:last-child {
+    border-bottom: none;
+}
+
+#what-if-results-display li small {
+    color: #555;
+    font-size: 0.9em;
+}

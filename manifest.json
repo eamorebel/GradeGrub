@@ -1,0 +1,35 @@
+{
+    "manifest_version": 3,
+    "name": "Grade Grub",
+    "description": "Calculate grade cutoffs for Canvas courses",
+    "version": "1.0.0",
+    "icons": {
+        "16": "images/icon-16.png",
+        "32": "images/icon-32.png",
+        "48": "images/icon-48.png",
+        "128": "images/icon-128.png"
+    },
+    "background": {
+        "service_worker": "scripts/background.js"
+    },
+    "action": {
+        "default_popup": "src/nograde.html",
+        "default_icon": {
+            "16": "images/icon-16.png",
+            "32": "images/icon-32.png",
+            "48": "images/icon-48.png",
+            "128": "images/icon-128.png"
+        }
+    },
+    "permissions": ["activeTab", "scripting", "storage"],
+    "host_permissions": ["https://*.instructure.com/*"],
+    "content_scripts": [
+        {
+            "matches": ["https://*.instructure.com/courses/*/grades"],
+            "js": ["scripts/scraper.js"]
+        }
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    }
+}

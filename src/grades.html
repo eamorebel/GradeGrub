@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Grades</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&display=swap"
+    />
+    <link rel="stylesheet" href="../styles/grades.css"> </head>
+<body>
+    <div class="container">
+        <h1>Stored Class Grades</h1>
+
+        <div class="class-selector-container">
+            <label for="class-selector">Select a Class:</label>
+            <select id="class-selector">
+                <option value="">--No Classes Stored--</option>
+            </select>
+            <button id="delete-class-button" style="display:none; margin-left: 10px;">Delete Selected Class</button>
+        </div>
+
+        <div id="grades-output">
+            <p>Please select a class to view its grades.</p>
+        </div>
+
+        <div id="overall-grade-container" style="display:none; margin-top: 20px; padding: 10px; border-top: 2px solid #333;">
+            <h2>Overall Course Grade</h2>
+            <p id="overall-grade-display">Select a class and ensure weights are set to calculate.</p>
+            <p id="unweighted-total-display" style="font-size: 0.9em; color: #555;"> </p>
+        </div>
+
+        <div id="grade-cutoff-manager" style="display:none; margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
+            <h3>Grade Cutoff Settings</h3>
+            <p>Define the minimum percentage needed for each letter grade. Defaults to grade cuts at 7/4/0 for +/_/-.</p>
+            <div id="cutoff-inputs-container">
+                </div>
+            <button id="save-cutoffs-button" class="action-button" style="margin-top:10px;">Save Custom Cutoffs</button>
+            <button id="reset-cutoffs-button" class="action-button secondary-button" style="margin-top:10px;">Reset to Default Cutoffs</button>
+        </div>
+
+        <div id="what-if-calculator" style="display:none; margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
+            <h3>Calculate Needed Grade</h3>
+            <div>
+                <label for="what-if-assignment-selector">Select Assignment for "What-If":</label>
+                <select id="what-if-assignment-selector">
+                    <option value="">--Select an Assignment--</option>
+                </select>
+            </div>
+            <div style="margin-top: 10px;">
+                <label for="extra-credit-percentage_what-if">Consider scores up to an extra [X]% on this assignment:</label>
+                <input type="number" id="extra-credit-percentage_what-if" value="25" min="0" max="100" step="1" style="width: 60px;"> %
+                <small>(e.g., 25 means testing up to 125% of points possible)</small>
+            </div>
+            <button id="calculate-needed-for-cutoffs-button" class="action-button" style="margin-top:10px;" disabled>Calculate Needed Scores for All Cutoffs</button>
+            <div id="what-if-results-display" style="margin-top: 15px;">
+                </div>
+        </div>
+
+    </div>
+
+    <script src="../scripts/display_grades.js"></script>
+</body>
+</html>
