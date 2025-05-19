@@ -32,9 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetCutoffsButton = document.getElementById('reset-cutoffs-button');
 
     const whatIfCalculatorDiv = document.getElementById('what-if-calculator');
-    const whatIfAssignmentSelector = document.getElementById('what-if-assignment-selector');
+    //const whatIfAssignmentSelector = document.getElementById('what-if-assignment-selector');
     const extraCreditInput_whatIf = document.getElementById('extra-credit-percentage_what-if'); 
     const calculateNeededForCutoffsButton = document.getElementById('calculate-needed-for-cutoffs-button');
+    const clearWhatIfSelectionButton = document.getElementById('clear-what-if-selection-button');
     const whatIfResultsDisplay = document.getElementById('what-if-results-display');
 
     let currentClassCutoffs = { ...DEFAULT_GRADE_CUTOFFS };
@@ -467,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // originalIndex is used for data binding
                     outputHTML += `<div class="${assignmentDivClass}" id="assignment-${assignment.originalIndex}" data-assignment-original-index="${assignment.originalIndex}">`;
+                    outputHTML += `  <input type="checkbox" class="what-if-assignment-checkbox" data-assignment-original-index="${assignment.originalIndex}" style="margin-right: 8px;">`
                     outputHTML += `  <span class="assignment-name">${assignment.name}:</span> `;
                     outputHTML += `  <input type="number" class="editable-grade assignment-score-input" value="${scoreValue}" data-assignment-index="${assignment.originalIndex}" data-property="score" placeholder="Score" step="any"> / `;
                     outputHTML += `  <input type="number" class="editable-grade assignment-points-input" value="${pointsPossibleValue}" data-assignment-index="${assignment.originalIndex}" data-property="pointsPossible" placeholder="Total" step="any" min="0">`;
@@ -528,7 +530,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             //console.log("[displayGradesForClass] About to render cutoff inputs and populate what-if selector.");
             renderGradeCutoffInputs();
-            populateWhatIfAssignmentSelector();
+            updateCalculateNeededButtonState();
+            //populateWhatIfAssignmentSelector();
 
         } else {
             currentClassNameForDisplay = null;
@@ -824,6 +827,51 @@ document.addEventListener('DOMContentLoaded', () => {
         //console.log('[populateWhatIfAssignmentSelector] Finished populating selector.');
     }
 
+    function getSelectedWhatIfAssignments() {
+        const selectedAssignments = [];
+        document.querySelectorAll('.what-if-assignment-checkbox:checked').forEach(checkbox => {
+            selectedAssignments.push(parseInt(checkbox.dataset.assignmentOriginalIndex, 10));
+        });
+        return selectedAssignments;
+    }
+
+    function updateCalculateNeededButtonState() {
+        const selectedAssignments = getSelectedWhatIfAssignments();
+        if (calculateNeededForCutoffsButton) {
+            if (selectedAssignments.length === 0) {
+                calculateNeededForCutoffsButton.disabled = true;
+                //change text to "Select an assignment"
+                calculateNeededForCutoffsButton.textContent = 'Select an assignment';
+                // gray out the button
+                calculateNeededForCutoffsButton.style.backgroundColor = '#ccc';
+                calculateNeededForCutoffsButton.style.color = '#666';
+            } else {
+                calculateNeededForCutoffsButton.disabled = false;
+                //change text back to original
+                calculateNeededForCutoffsButton.textContent = 'Calculate Needed Scores for All Cutoffs';
+                // reset button color
+                calculateNeededForCutoffsButton.style.backgroundColor = '';
+                calculateNeededForCutoffsButton.style.color = '';
+            }
+        }
+        whatIfResultsDisplay.innerHTML = '';
+    }
+
+    function resetWhatIfCalculator() {
+         calculateNeededForCutoffsButton.disabled = true;
+         whatIfResultsDisplay.innerHTML = '';
+    }
+
+    function clearWhatIfSelection() {
+        document.querySelectorAll('.what-if-assignment-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateCalculateNeededButtonState(); // This will disable the "Calculate" button
+        if (whatIfResultsDisplay) {
+            whatIfResultsDisplay.innerHTML = ''; // Clear any previous calculation results
+        }
+    }
+
     function resetDefaultCutoffs() {
         if (!currentClassNameForDisplay) return;
         //console.log('[resetDefaultCutoffs] Resetting to defaults.');
@@ -843,101 +891,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Calculates the minimum score needed on a target assignment to achieve a desired overall final grade.
-     * @param {number} targetAssignmentOriginalIndex - The original index of the assignment in currentClassData.
+     * @param {number[]} targetAssignmentOriginalIndices - Array of original indices of the assignments in currentClassData.
      * @param {number} desiredOverallGrade - The target final grade percentage (e.g., 94 for an A).
      * @param {number} extraCreditPercent - The percentage of extra credit to consider (e.g., 25 for 25% extra).
-     * @returns {object} An object { neededScore: number | null, pointsPossible: number, isPossible: boolean, finalGradeAchieved: number | null }
+     * @returns {object} An object { neededPercentage: number | null, isPossible: boolean, finalGradeAchieved: number | null, individualResults: array }
      * neededScore is null if not possible or assignment invalid.
      */
-    function calculateMinScoreForAssignment(targetAssignmentOriginalIndex, desiredOverallGrade, extraCreditPercent) {
-        //console.log(`[calculateMinScoreForAssignment] Index: ${targetAssignmentOriginalIndex}, Desired Overall: ${desiredOverallGrade}%`);
-        if (!currentClassData || targetAssignmentOriginalIndex < 0 || targetAssignmentOriginalIndex >= currentClassData.length) {
-            console.error("[calculateMinScoreForAssignment] Invalid target assignment index or no class data.");
-            return { neededScore: null, pointsPossible: null, isPossible: false, finalGradeAchieved: null };
+    function calculateMinScoreForAssignments(targetAssignmentOriginalIndices, desiredOverallGrade, extraCreditPercent) {
+        //console.log(`[calculateMinScoreForAssignments] Indices: ${targetAssignmentOriginalIndices.join(', ')}, Desired Overall: ${desiredOverallGrade}%`);
+        if (!currentClassData || targetAssignmentOriginalIndices.length === 0) {
+            console.error("[calculateMinScoreForAssignments] No target assignments selected or no class data.");
+            return { neededPercentage: null, isPossible: false, finalGradeAchieved: null, individualResults: [] };
+        }
+            
+        const originalScores = targetAssignmentOriginalIndices.map(index => currentClassData[index].score);
+        const targetAssignmentsData = [];
+
+        for (const index of targetAssignmentOriginalIndices) {
+            const assignment = currentClassData[index];
+            const pointsPossible = parseFloat(assignment.pointsPossible);
+            if (isNaN(pointsPossible) || pointsPossible <= 0) {
+                console.warn(`[calculateMinScoreForAssignments] Target assignment "${assignment.name}" has invalid points possible (${assignment.pointsPossible}). Cannot calculate for this assignment.`);
+                 // Restore original scores for all processed assignments before returning
+                targetAssignmentOriginalIndices.forEach((idx, i) => { currentClassData[idx].score = originalScores[i]; });
+                return { neededPercentage: null, isPossible: false, finalGradeAchieved: null, individualResults: [] }; // Or handle more gracefully
+            }
+            targetAssignmentsData.push({ originalIndex: index, name: assignment.name, pointsPossible: pointsPossible });
         }
 
-        const targetAssignment = currentClassData[targetAssignmentOriginalIndex];
-        const originalScore = targetAssignment.score; // Save original score
-        // Ensure pointsPossible is a number, default to a value that would make calculations safe if it's invalid
-        const pointsPossible = parseFloat(targetAssignment.pointsPossible);
-
-        if (isNaN(pointsPossible) || pointsPossible <= 0) {
-            console.warn(`[calculateMinScoreForAssignment] Target assignment "${targetAssignment.name}" has invalid points possible (${targetAssignment.pointsPossible}). Cannot calculate.`);
-            targetAssignment.score = originalScore; // Restore original score
-            return { neededScore: null, pointsPossible: targetAssignment.pointsPossible, isPossible: false, finalGradeAchieved: null };
-        }
-
-        let minNeededScore = null;
-        let finalGradeWithMinNeededScore = null;
+        let minNeededPercentage = null;
         const multiplier = 1 + (parseFloat(extraCreditPercent) / 100);
-        const maxTestScore = pointsPossible * multiplier; // Test up to 125% (for extra credit)
-        const step = Math.max(0.01, pointsPossible / 2000); // Dynamic step for precision, min 0.01
+        const maxTestPercentage = multiplier; // Max percentage to test (e.g., 1.25 for 125%)
+        const step = 1 / 2000; // Step size for iteration
 
-        //console.log(`[calculateMinScoreForAssignment] Iterating scores for "${targetAssignment.name}" (0 to ${maxTestScore.toFixed(2)}) with step ${step.toFixed(4)}`);
+        //console.log(`[calculateMinScoreForAssignments] Iterating percentage (0 to ${maxTestPercentage.toFixed(4)}) with step ${step}`);
 
-        for (let testScore = 0; testScore <= maxTestScore; testScore += step) {
-            const currentTestScore = parseFloat(testScore.toFixed(4)); // Use higher precision for testScore
-            currentClassData[targetAssignmentOriginalIndex].score = currentTestScore;
+        for (let testPercentage = 0; testPercentage <= maxTestPercentage; testPercentage += step) {
+            const currentTestPercentage = parseFloat(testPercentage.toFixed(4));
+
+            targetAssignmentsData.forEach(asmData => {
+                currentClassData[asmData.originalIndex].score = asmData.pointsPossible * currentTestPercentage;
+            });
 
             const calculatedGradeResult = calculateOverallFinalGrade(); // Assumes this function is correct
             const currentFinalGrade = calculatedGradeResult.finalGrade;
-            // console.log(`[CalcLoop] Test Score: ${currentTestScore.toFixed(2)}, Overall Grade: ${currentFinalGrade !== null ? currentFinalGrade.toFixed(2) : 'N/A'}`);
+            //console.log(`[CalcLoop] Test Percentage: ${(currentTestPercentage * 100).toFixed(2)}%, Overall Grade: ${currentFinalGrade !== null ? currentFinalGrade.toFixed(2) : 'N/A'}`);
 
             if (currentFinalGrade !== null && currentFinalGrade >= desiredOverallGrade) {
-                minNeededScore = currentTestScore; // Store the score that achieved it
+                minNeededPercentage = currentTestPercentage;
                 finalGradeWithMinNeededScore = currentFinalGrade;
-                //console.log(`[calculateMinScoreForAssignment] Success! Desired grade ${desiredOverallGrade}% achieved with score ${minNeededScore.toFixed(2)} (Overall: ${finalGradeWithMinNeededScore.toFixed(2)}%)`);
+                //console.log(`[calculateMinScoreForAssignments] Success! Desired grade ${desiredOverallGrade}% achieved with percentage ${(minNeededPercentage * 100).toFixed(2)}% (Overall: ${finalGradeWithMinNeededScore.toFixed(2)}%)`);
                 break;
             }
         }
 
-        currentClassData[targetAssignmentOriginalIndex].score = originalScore; // IMPORTANT: Restore original score
-        //console.log(`[calculateMinScoreForAssignment] Restored original score for "${targetAssignment.name}": ${originalScore}`);
+        // IMPORTANT: Restore original scores
+        targetAssignmentOriginalIndices.forEach((index, i) => {
+            currentClassData[index].score = originalScores[i];
+        });
+        //console.log(`[calculateMinScoreForAssignments] Restored original scores.`);
 
-        if (minNeededScore !== null) {
+        if (minNeededPercentage !== null) {
+            const individualResults = targetAssignmentsData.map(asmData => ({
+                originalIndex: asmData.originalIndex,
+                name: asmData.name,
+                neededScore: parseFloat((asmData.pointsPossible * minNeededPercentage).toFixed(2)),
+                pointsPossible: asmData.pointsPossible
+            }));
             return {
-                neededScore: parseFloat(minNeededScore.toFixed(2)), // Return with 2 decimal places
-                pointsPossible: pointsPossible,
+                neededPercentage: parseFloat((minNeededPercentage * 100).toFixed(2)), // As a percentage
                 isPossible: true,
-                finalGradeAchieved: parseFloat(finalGradeWithMinNeededScore.toFixed(2))
+                finalGradeAchieved: parseFloat(finalGradeWithMinNeededScore.toFixed(2)),
+                individualResults: individualResults
             };
         } else {
             // If loop finishes, calculate max achievable grade with maxTestScore
-            currentClassData[targetAssignmentOriginalIndex].score = maxTestScore;
+            // If loop finishes, calculate max achievable grade with maxTestPercentage
+            targetAssignmentsData.forEach(asmData => {
+                currentClassData[asmData.originalIndex].score = asmData.pointsPossible * maxTestPercentage;
+            });
             const maxAchievableGradeResult = calculateOverallFinalGrade();
-            currentClassData[targetAssignmentOriginalIndex].score = originalScore; // Restore again
+            targetAssignmentOriginalIndices.forEach((index, i) => { currentClassData[index].score = originalScores[i]; }); // Restore again
 
-            //console.log(`[calculateMinScoreForAssignment] Failure. Desired grade ${desiredOverallGrade}% not achievable. Max overall with ${maxTestScore.toFixed(2)} on assignment: ${maxAchievableGradeResult.finalGrade !== null ? maxAchievableGradeResult.finalGrade.toFixed(2) : 'N/A'}%`);
+            //console.log(`[calculateMinScoreForAssignments] Failure. Desired grade ${desiredOverallGrade}% not achievable. Max overall with ${(maxTestPercentage*100).toFixed(2)}% on assignments: ${maxAchievableGradeResult.finalGrade !== null ? maxAchievableGradeResult.finalGrade.toFixed(2) : 'N/A'}%`);
             return {
-                neededScore: null,
-                pointsPossible: pointsPossible,
+                neededPercentage: null,
                 isPossible: false,
-                finalGradeAchieved: maxAchievableGradeResult.finalGrade !== null ? parseFloat(maxAchievableGradeResult.finalGrade.toFixed(2)) : null
+                finalGradeAchieved: maxAchievableGradeResult.finalGrade !== null ? parseFloat(maxAchievableGradeResult.finalGrade.toFixed(2)) : null,
+                individualResults: []
             };
         }
     }
 
     function displayNeededScoresForAllCutoffs() {
-        if (!whatIfAssignmentSelector || !whatIfResultsDisplay) return;
-        const selectedIndex = whatIfAssignmentSelector.value;
+        console.log('[displayNeededScoresForAllCutoffs] Called.');
+        if (!whatIfResultsDisplay) return;
+        const selectedAssignmentIndices = getSelectedWhatIfAssignments();
 
-        if (!selectedIndex || selectedIndex === "") {
-            whatIfResultsDisplay.innerHTML = "<p>Please select an assignment first.</p>";
-            return;
-        }
-        const targetAssignmentOriginalIndex = parseInt(selectedIndex, 10);
-        const targetAssignment = currentClassData[targetAssignmentOriginalIndex];
-
-        if (!targetAssignment) {
-            whatIfResultsDisplay.innerHTML = "<p>Error: Selected assignment not found.</p>";
-            console.error("[displayNeededScoresForAllCutoffs] Target assignment data not found for index:", targetAssignmentOriginalIndex);
+        if (selectedAssignmentIndices.length === 0) {
+            whatIfResultsDisplay.innerHTML = "<p>Please select one or more assignments using the checkboxes.</p>";
             return;
         }
 
-        const targetPointsPossible = parseFloat(targetAssignment.pointsPossible);
-        if (isNaN(targetPointsPossible) || targetPointsPossible <= 0) {
-            whatIfResultsDisplay.innerHTML = `<p>The selected assignment "${targetAssignment.name}" has invalid or zero points possible. Cannot perform calculation.</p>`;
-            return;
+        // Verify all selected assignments have valid points possible
+        const selectedAssignmentNames = [];
+        for (const index of selectedAssignmentIndices) {
+            const assignment = currentClassData[index];
+            selectedAssignmentNames.push(assignment.name);
+            const pointsPossible = parseFloat(assignment.pointsPossible);
+            if (isNaN(pointsPossible) || pointsPossible <= 0) {
+                whatIfResultsDisplay.innerHTML = `<p>One of the selected assignments ("${assignment.name}") has invalid or zero points possible. Cannot perform calculation.</p>`;
+                return;
+            }
+            console.log(`[displayNeededScoresForAllCutoffs] Selected assignment "${assignment.name}" has valid points possible: ${pointsPossible}`);
         }
 
         // Read the extra credit percentage from the input field
@@ -945,11 +1011,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isNaN(extraCreditValue) || extraCreditValue < 0) {
             console.warn("[displayNeededScoresForAllCutoffs] Invalid extra credit percentage input, defaulting to 0.");
             extraCreditValue = 0; // Default to 0 if input is invalid
+            
         }
+        console.log(`[displayNeededScoresForAllCutoffs] Extra credit percentage: ${extraCreditValue}%`);
         // Ensure the input field reflects the sanitized value if it was changed
         extraCreditInput_whatIf.value = extraCreditValue;
 
-        whatIfResultsDisplay.innerHTML = `<h4>Needed scores for "${targetAssignment.name}" (Worth ${targetAssignment.pointsPossible} pts), considering up to ${extraCreditValue}% extra:</h4>`;
+        const assignmentNamesText = selectedAssignmentNames.length > 1 ? 
+            `assignments: ${selectedAssignmentNames.join(', ')}` : 
+            `assignment: "${selectedAssignmentNames[0]}"`;
+        whatIfResultsDisplay.innerHTML = `<h4>Needed scores for selected ${assignmentNamesText}, considering up to ${extraCreditValue}% extra (aiming for the same percentage on each):</h4>`;
         const ul = document.createElement('ul');
 
         const sortedCutoffs = Object.entries(currentClassCutoffs)
@@ -960,21 +1031,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cutoffPercentage === null || isNaN(cutoffPercentage)) continue;
             anyCalculationDone = true;
 
-            const result = calculateMinScoreForAssignment(targetAssignmentOriginalIndex, cutoffPercentage, extraCreditValue);
+            const result = calculateMinScoreForAssignments(selectedAssignmentIndices, cutoffPercentage, extraCreditValue);
+            console.log(`[displayNeededScoresForAllCutoffs] Grade: ${grade}, Cutoff: ${cutoffPercentage}, Result:`, result);
             const li = document.createElement('li');
-            if (result.isPossible && result.neededScore !== null) {
-                const neededPercentage = (result.neededScore / result.pointsPossible * 100).toFixed(2);
+            if (result.isPossible && result.neededPercentage !== null) {
                 li.innerHTML = `To get a <strong>${grade}</strong> (&GreaterEqual;${cutoffPercentage}% overall): 
-                              Need <strong>${result.neededScore.toFixed(2)} / ${result.pointsPossible.toFixed(2)}</strong> 
-                              (<em>${neededPercentage}% on this assignment</em>). 
+                              Need <strong>${result.neededPercentage.toFixed(2)}%</strong> on each selected assignment.
                               <small>(Actual overall: ${result.finalGradeAchieved !== null ? result.finalGradeAchieved.toFixed(2) : 'N/A'}%)</small>`;
-                 if (result.neededScore > result.pointsPossible) {
+                if (result.neededPercentage > 100) {
                     li.innerHTML += ` <strong style="color:orange;">(Requires extra credit)</strong>`;
                 }
+                const detailsUl = document.createElement('ul');
+                detailsUl.style.fontSize = '0.9em';
+                detailsUl.style.marginLeft = '20px';
+                result.individualResults.forEach(asmRes => {
+                    const detailLi = document.createElement('li');
+                    detailLi.innerHTML = `<em>${asmRes.name}</em>: ${asmRes.neededScore.toFixed(2)} / ${asmRes.pointsPossible.toFixed(2)}`;
+                    detailsUl.appendChild(detailLi);
+                });
+                li.appendChild(detailsUl);
             } else {
                 li.innerHTML = `To get a <strong>${grade}</strong> (&GreaterEqual;${cutoffPercentage}% overall): 
                               <strong style="color:red;">Not possible.</strong> 
-                              <small>(Max possible overall grade if you get ${ (targetAssignment.pointsPossible * (1 + extraCreditValue / 100)).toFixed(2)}/${targetAssignment.pointsPossible.toFixed(2)} on this: ${result.finalGradeAchieved !== null ? result.finalGradeAchieved.toFixed(2) : 'N/A'}%)</small>`;
+                              <small>(Max possible overall grade with ${ (100 + extraCreditValue).toFixed(0)}% on selected assignments: ${result.finalGradeAchieved !== null ? result.finalGradeAchieved.toFixed(2) : 'N/A'}%)</small>`;
             }
             ul.appendChild(li);
         }
@@ -998,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (value !== null && isNaN(value)) {
                     event.target.value = currentClassData?.[assignmentIndex]?.[property] ?? '';
                 }
-                populateWhatIfAssignmentSelector(); // Update the what-if selector to reflect changes
+                //populateWhatIfAssignmentSelector(); // Update the what-if selector to reflect changes
             });
             input.dataset.listenerAttached = 'true'; // Mark as having a listener
         });
@@ -1152,18 +1231,29 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             icon.dataset.listenerAttached = 'true';
         });
+
+        // Listener for what-if checkboxes
+        gradesOutput.addEventListener('change', (event) => {
+            if (event.target.classList.contains('what-if-assignment-checkbox')) {
+                updateCalculateNeededButtonState();
+                whatIfResultsDisplay.innerHTML = ''; // Clear previous results if selection changes
+            }
+        });
+
         
         if (saveCutoffsButton) saveCutoffsButton.addEventListener('click', saveCustomCutoffs);
         if (resetCutoffsButton) resetCutoffsButton.addEventListener('click', resetDefaultCutoffs);
         if (calculateNeededForCutoffsButton) calculateNeededForCutoffsButton.addEventListener('click', displayNeededScoresForAllCutoffs);
-
+        if (clearWhatIfSelectionButton) clearWhatIfSelectionButton.addEventListener('click', clearWhatIfSelection);
+        
         // If classSelector listener is here, ensure it calls populateWhatIfAssignmentSelector
          classSelector.addEventListener('change', (event) => {
             const selectedClass = event.target.value;
             currentClassNameForDisplay = selectedClass; // This is already set
             if (selectedClass) {
                 displayGradesForClass(selectedClass, globalAllClassesData); // This will re-init everything
-                // The populateWhatIfAssignmentSelector() is called inside displayGradesForClass
+                resetWhatIfCalculator(); // Reset calculator on class change
+                updateCalculateNeededButtonState();
             } else {
                 gradesOutput.innerHTML = '<p>Please select a class to view its grades.</p>';
                 currentClassData = null;
@@ -1269,6 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gradeCutoffManagerDiv) gradeCutoffManagerDiv.style.display = 'none';
             if (whatIfCalculatorDiv) whatIfCalculatorDiv.style.display = 'none';
             updateOverallGradeDisplay(); // Clear overall display
+            resetWhatIfCalculator();
         }
     }
 

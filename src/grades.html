@@ -43,18 +43,14 @@
 
         <div id="what-if-calculator" style="display:none; margin-top: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 5px;">
             <h3>Calculate Needed Grade</h3>
-            <div>
-                <label for="what-if-assignment-selector">Select Assignment for "What-If":</label>
-                <select id="what-if-assignment-selector">
-                    <option value="">--Select an Assignment--</option>
-                </select>
-            </div>
+            <p>Select one or more assignments from the tables above using the checkboxes to calculate the grade needed on them.</p>
             <div style="margin-top: 10px;">
                 <label for="extra-credit-percentage_what-if">Consider scores up to an extra [X]% on this assignment:</label>
                 <input type="number" id="extra-credit-percentage_what-if" value="25" min="0" max="100" step="1" style="width: 60px;"> %
                 <small>(e.g., 25 means testing up to 125% of points possible)</small>
             </div>
             <button id="calculate-needed-for-cutoffs-button" class="action-button" style="margin-top:10px;" disabled>Calculate Needed Scores for All Cutoffs</button>
+            <button id="clear-what-if-selection-button" class="action-button secondary-button" style="margin-top:10px; margin-left: 5px;">Clear Selection</button>
             <div id="what-if-results-display" style="margin-top: 15px;">
                 </div>
         </div>
