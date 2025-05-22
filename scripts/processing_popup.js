@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case "saved_and_opened":
                 loadingSpinner.style.display = 'none';
                 classNameForReopen = className; // Store for the button click
-                processingTextElement.textContent = `Grades for "${className || 'this class'}" are saved. Relaod to rescrape.`;
+                processingTextElement.textContent = `Grades for "${className || 'this class'}" are saved. Delete class, then reload this tab to rescrape.`;
                 actionButton.textContent = `Reopen Grades`;
                 actionButton.style.display = 'block';
                 currentAction = "reopen";

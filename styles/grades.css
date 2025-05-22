@@ -451,3 +451,13 @@ button {
     font-size: 0.9em;
 }
 
+.assignment.replaced-assignment {
+    background-color: #e6f7ff; /* Light blue tint, for example */
+    font-style: italic;
+    /* Add a border or other indicators if desired */
+}
+.assignment.replaced-assignment .assignment-name {
+    /* Optional: different color or style for name of replaced items */
+    color: #0056b3; /* Dark blue */
+    text-decoration: underline; /* Underline to indicate it's replaced */
+}

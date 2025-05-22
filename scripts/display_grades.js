@@ -59,94 +59,184 @@ document.addEventListener('DOMContentLoaded', () => {
             return { totalScore: 0, totalPossible: 0, percentage: 0, methodUsed: calculationMethod, hasGradedItems: false, droppedCount: 0, droppedAssignmentOriginalIndices: new Set() };
         }
 
-        // Ensure each assignment has its originalIndex from currentClassData for reliable identification
-        const assignmentsWithContext = currentClassData.map((asm, index) => ({
-            ...asm,
-            originalIndex: index // This is the key index we need to track
-        }));
+        const classSettingsKey = currentClassNameForDisplay + '_settings';
+        const classSettings = globalAllClassesData[classSettingsKey] || {};
+        const categoryPolicySettings = (classSettings.categoryReplacePolicies && classSettings.categoryReplacePolicies[categoryName])
+                                    ? classSettings.categoryReplacePolicies[categoryName]
+                                    : { policy: 'none', finalAssignmentOriginalIndex: null };
 
-        // 1. Filter for the current category AND !isExcluded
-        let assignmentsForCategory = assignmentsWithContext.filter(
-            assignment => (assignment.category || 'Uncategorized') === categoryName && !assignment.isExcluded
-        );
+        let replacedAssignmentOriginalIndices = new Set(); // Initialize this set
 
-        // 2. Apply automatic drops
-        const classSettings = globalAllClassesData[currentClassNameForDisplay + '_settings'] || {};
+        let assignmentsForCategory = currentClassData
+            .map((asm, index) => ({ ...asm, originalIndex: index, effectiveScore: parseFloat(asm.score), isReplaced: false }))
+            .filter(assignment => (assignment.category || 'Uncategorized') === categoryName && !assignment.isExcluded);
+
+        let gradableAssignmentsForPolicy = assignmentsForCategory.filter(asm => {
+            const score = asm.effectiveScore;
+            const possible = parseFloat(asm.pointsPossible);
+            return !isNaN(score) && !isNaN(possible) && possible > 0;
+        });
+
+        if (gradableAssignmentsForPolicy.length > 0) {
+            if (categoryPolicySettings.policy === 'finalReplacesLowest' && categoryPolicySettings.finalAssignmentOriginalIndex !== null) {
+                const finalAssignmentGlobal = currentClassData[categoryPolicySettings.finalAssignmentOriginalIndex];
+
+                if (finalAssignmentGlobal && !finalAssignmentGlobal.isExcluded &&
+                    parseFloat(finalAssignmentGlobal.pointsPossible) > 0 && !isNaN(parseFloat(finalAssignmentGlobal.score))) {
+
+                    const finalAsmPercentage = (parseFloat(finalAssignmentGlobal.score) / parseFloat(finalAssignmentGlobal.pointsPossible));
+                    let lowestAsmForReplacement = null;
+                    let lowestAsmPercentage = Infinity;
+
+                    gradableAssignmentsForPolicy.forEach(asm => {
+                        if (asm.originalIndex === categoryPolicySettings.finalAssignmentOriginalIndex && (asm.category || "Uncategorized") === (finalAssignmentGlobal.category || "Uncategorized") ) return; // Don't replace final with itself if in same category
+
+                        const currentAsmPercentage = (asm.effectiveScore / parseFloat(asm.pointsPossible));
+                        if (currentAsmPercentage < lowestAsmPercentage) {
+                            lowestAsmPercentage = currentAsmPercentage;
+                            lowestAsmForReplacement = asm;
+                        }
+                    });
+
+                    if (lowestAsmForReplacement && finalAsmPercentage > lowestAsmPercentage) {
+                        const indexToUpdateInWorkingArray = assignmentsForCategory.findIndex(a => a.originalIndex === lowestAsmForReplacement.originalIndex);
+                        if (indexToUpdateInWorkingArray !== -1) {
+                            assignmentsForCategory[indexToUpdateInWorkingArray].effectiveScore = finalAsmPercentage * parseFloat(assignmentsForCategory[indexToUpdateInWorkingArray].pointsPossible);
+                            assignmentsForCategory[indexToUpdateInWorkingArray].isReplaced = true;
+                            replacedAssignmentOriginalIndices.add(lowestAsmForReplacement.originalIndex);
+                        }
+                    }
+                }
+            } else if (categoryPolicySettings.policy === 'replaceLowWithCategoryAverage') {
+                if (gradableAssignmentsForPolicy.length > 1) {
+                    let lowestAsmForReplacement = null;
+                    let lowestAsmPercentage = Infinity;
+                    let lowestAsmOriginalIndex = -1;
+
+                    gradableAssignmentsForPolicy.forEach(asm => {
+                        const currentAsmPercentage = (asm.effectiveScore / parseFloat(asm.pointsPossible));
+                        if (currentAsmPercentage < lowestAsmPercentage) {
+                            lowestAsmPercentage = currentAsmPercentage;
+                            lowestAsmForReplacement = asm;
+                            lowestAsmOriginalIndex = asm.originalIndex;
+                        }
+                    });
+
+                    if (lowestAsmForReplacement) {
+                        const includeLowestInAvgCalc = categoryPolicySettings.includeLowestInAvg || false; // Default to false
+
+                        let tempSumScores = 0;
+                        let tempSumPossible = 0;
+                        let tempCountForAvg = 0;
+                        let tempSumPercForEqual = 0;
+
+                        gradableAssignmentsForPolicy.forEach(asm => {
+                            // Conditionally skip the lowest assignment if 'includeLowestInAvgCalc' is false
+                            if (!includeLowestInAvgCalc && asm.originalIndex === lowestAsmOriginalIndex) {
+                                return; // Exclude the identified lowest assignment from this preliminary average calculation
+                            }
+
+                            // The rest of the accumulation logic remains the same
+                            if (calculationMethod === 'equalWeight') {
+                                if (parseFloat(asm.pointsPossible) > 0 && !isNaN(asm.effectiveScore)) {
+                                    tempSumPercForEqual += (asm.effectiveScore / parseFloat(asm.pointsPossible));
+                                    tempCountForAvg++;
+                                }
+                            } else { // totalPoints
+                                if (!isNaN(asm.effectiveScore)) tempSumScores += asm.effectiveScore;
+                                if (parseFloat(asm.pointsPossible) > 0) tempSumPossible += parseFloat(asm.pointsPossible);
+                            }
+                        });
+
+                        let preliminaryAveragePercentage = 0;
+                        if (calculationMethod === 'equalWeight' && tempCountForAvg > 0) {
+                            preliminaryAveragePercentage = (tempSumPercForEqual / tempCountForAvg);
+                        } else if (calculationMethod === 'totalPoints' && tempSumPossible > 0) {
+                            preliminaryAveragePercentage = (tempSumScores / tempSumPossible);
+                        } else if (calculationMethod === 'totalPoints' && tempSumScores > 0 && tempSumPossible === 0 && tempCountForAvg === 0) { // All bonus case
+                            preliminaryAveragePercentage = 1; // Treat avg as 100% if only bonus scores contribute
+                        }
+
+                        if (preliminaryAveragePercentage > lowestAsmPercentage) {
+                            const indexToUpdateInWorkingArray = assignmentsForCategory.findIndex(a => a.originalIndex === lowestAsmOriginalIndex);
+                            if (indexToUpdateInWorkingArray !== -1) {
+                                assignmentsForCategory[indexToUpdateInWorkingArray].effectiveScore = preliminaryAveragePercentage * parseFloat(assignmentsForCategory[indexToUpdateInWorkingArray].pointsPossible);
+                                assignmentsForCategory[indexToUpdateInWorkingArray].isReplaced = true;
+                                replacedAssignmentOriginalIndices.add(lowestAsmOriginalIndex);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Update gradableAssignmentsForPolicy in case scores changed due to policy
+        gradableAssignmentsForPolicy = assignmentsForCategory.filter(asm => {
+            const score = asm.effectiveScore;
+            const possible = parseFloat(asm.pointsPossible);
+            return !isNaN(score) && !isNaN(possible) && possible > 0;
+        });
+
         const numDropsForCategory = parseInt(classSettings.categoryDrops?.[categoryName], 10) || 0;
         let actualDroppedCount = 0;
-        let droppedAssignmentOriginalIndices = new Set(); // Initialize here
+        let droppedAssignmentOriginalIndices = new Set();
 
         if (numDropsForCategory > 0 && assignmentsForCategory.length > 0) {
-            // Identify assignments eligible for dropping (must have a score and valid positive points possible)
-            const gradableAssignments = assignmentsForCategory
+            let droppableAssignments = assignmentsForCategory
                 .filter(asm => {
-                    const score = parseFloat(asm.score);
+                    const score = asm.effectiveScore;
                     const possible = parseFloat(asm.pointsPossible);
-                    return !isNaN(score) && !isNaN(possible) && possible > 0;
+                    // Only drop if it's gradable AND NOT already replaced by a policy
+                    return !isNaN(score) && !isNaN(possible) && possible > 0 && !asm.isReplaced;
                 });
 
-            if (gradableAssignments.length > numDropsForCategory) {
-                // Sort by percentage score (score / possible) ascending to find the lowest
-                gradableAssignments.sort((a, b) => {
-                    const percA = (parseFloat(a.score) / parseFloat(a.pointsPossible));
-                    const percB = (parseFloat(b.score) / parseFloat(b.pointsPossible));
+            if (droppableAssignments.length > numDropsForCategory) {
+                droppableAssignments.sort((a, b) => {
+                    const percA = (a.effectiveScore / parseFloat(a.pointsPossible));
+                    const percB = (b.effectiveScore / parseFloat(b.pointsPossible));
                     return percA - percB;
                 });
-
-                // Identify the assignments to drop
-                const assignmentsToActuallyDrop = gradableAssignments.slice(0, numDropsForCategory);
+                const assignmentsToActuallyDrop = droppableAssignments.slice(0, numDropsForCategory);
                 actualDroppedCount = assignmentsToActuallyDrop.length;
-                
-                // Store the original indices of the assignments that are actually dropped
                 assignmentsToActuallyDrop.forEach(asm => droppedAssignmentOriginalIndices.add(asm.originalIndex));
-
-                // Filter out the dropped assignments from the list used for calculation
-                assignmentsForCategory = assignmentsForCategory.filter(asm => {
-                    // If it's one of the dropped ones (identified by originalIndex), exclude from calculation
-                    return !droppedAssignmentOriginalIndices.has(asm.originalIndex);
-                });
-            } else if (gradableAssignments.length > 0) { // All gradable assignments are dropped
-                actualDroppedCount = gradableAssignments.length;
-                gradableAssignments.forEach(asm => droppedAssignmentOriginalIndices.add(asm.originalIndex));
-                
-                assignmentsForCategory = assignmentsForCategory.filter(asm => {
-                    // Keep only non-gradable if all gradable are dropped (or rather, filter out those that were dropped)
-                    return !droppedAssignmentOriginalIndices.has(asm.originalIndex);
-                });
+            } else if (droppableAssignments.length > 0) {
+                actualDroppedCount = droppableAssignments.length;
+                droppableAssignments.forEach(asm => droppedAssignmentOriginalIndices.add(asm.originalIndex));
             }
+            // Filter out the dropped assignments from the list used for final calculation
+            assignmentsForCategory = assignmentsForCategory.filter(asm => !droppedAssignmentOriginalIndices.has(asm.originalIndex));
         }
 
 
-        // 3. Calculate totals with the remaining assignments
+        // --- 3. Calculate totals with the remaining assignments (using effectiveScore) ---
         let totalScore = 0, totalPossible = 0, validAssignmentsCount = 0, hasGradedItems = false;
 
         if (calculationMethod === 'equalWeight') {
             let sumOfIndividualPercentages = 0;
             assignmentsForCategory.forEach(asm => {
-                const score = parseFloat(asm.score);
+                const score = asm.effectiveScore; // USE EFFECTIVE SCORE
                 const possible = parseFloat(asm.pointsPossible);
                 if (!isNaN(score) && !isNaN(possible) && possible > 0) {
                     sumOfIndividualPercentages += (score / possible);
                     validAssignmentsCount++;
                     hasGradedItems = true;
-                } else if (asm.score !== null && asm.score !== undefined) { // Has a score but maybe no points possible (e.g. extra credit)
-                     hasGradedItems = true; // Still counts as a graded item for the category activity
+                } else if (asm.score !== null && asm.score !== undefined) {
+                    hasGradedItems = true;
                 }
             });
             totalScore = sumOfIndividualPercentages;
-            totalPossible = validAssignmentsCount; // Denominator is count of items
+            totalPossible = validAssignmentsCount;
         } else { // totalPoints
             assignmentsForCategory.forEach(asm => {
-                const score = parseFloat(asm.score);
+                const score = asm.effectiveScore; // USE EFFECTIVE SCORE
                 const possible = parseFloat(asm.pointsPossible);
                 if (!isNaN(score)) {
                     totalScore += score;
                     hasGradedItems = true;
                 }
-                if (!isNaN(possible) && possible > 0) { // Only add to totalPossible if it's a positive number
+                if (!isNaN(possible) && possible > 0) {
                     totalPossible += possible;
-                    if (asm.score === null || asm.score === undefined) hasGradedItems = true; // Ungraded but has points possible
-                } else if (!isNaN(score) && (isNaN(possible) || possible === 0)) { // Score but no valid points possible
+                    if (asm.score === null || asm.score === undefined) hasGradedItems = true;
+                } else if (!isNaN(score) && (isNaN(possible) || possible === 0)) {
                     hasGradedItems = true;
                 }
             });
@@ -156,17 +246,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (totalPossible > 0) {
             percentage = (calculationMethod === 'equalWeight' ? totalScore / totalPossible : totalScore / totalPossible) * 100;
         } else if (hasGradedItems && totalPossible === 0 && calculationMethod === 'totalPoints') {
-             // e.g. category has only extra credit items with scores but no points possible, or all points possible are 0
-             // In this specific case for total points, if totalPossible is 0 but there are scores, the percentage is effectively infinite or undefined.
-             // We might want to display totalScore as "bonus" or handle this as 100% if totalScore > 0, or 0%.
-             // For now, if totalPossible is 0, percentage is 0 unless specific handling is added.
-             if (totalScore > 0) percentage = 100; // Or some other representation. This is a common way to handle pure bonus.
-             else percentage = 0;
+            if (totalScore > 0) percentage = 100;
+            else percentage = 0;
         } else if (calculationMethod === 'equalWeight' && validAssignmentsCount === 0 && hasGradedItems) {
             percentage = 0;
         }
 
-        //console.log(`[${categoryName}] Final droppedAssignmentOriginalIndices before return:`, new Set(droppedAssignmentOriginalIndices)); // DEBUG (log a copy)
+        // Update the visual style for replaced assignments
+        assignmentsForCategory.forEach(asm => {
+            const asmEl = document.getElementById(`assignment-${asm.originalIndex}`);
+            if (asmEl) {
+                if (asm.isReplaced) {
+                    asmEl.classList.add('replaced-assignment'); // You'll need to style this class
+                    asmEl.title = `Original score: ${asm.score}. Score replaced with ${asm.effectiveScore.toFixed(2)} by policy.`;
+                } else {
+                    asmEl.classList.remove('replaced-assignment');
+                    asmEl.title = '';
+                }
+            }
+        });
+
+
         return {
             totalScore,
             totalPossible,
@@ -270,13 +370,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentClassNameForDisplay) {
             if (overallGradeContainer) overallGradeContainer.style.display = 'none';
             if (overallGradeDisplay) overallGradeDisplay.textContent = 'Select a class and ensure weights are set.';
-            if (unweightedTotalDisplay) unweightedTotalDisplay.textContent = '';
-            //console.log("No class selected for overall grade display.");
+            if (unweightedTotalDisplay) unweightedTotalDisplay.innerHTML = ''; // Use innerHTML and clear
             return;
         }
 
         const gradeData = calculateOverallFinalGrade();
-        //console.log("Overall grade data:", gradeData);
 
         if (overallGradeContainer) overallGradeContainer.style.display = 'block';
 
@@ -284,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gradeData.finalGrade !== null) {
                 overallGradeDisplay.textContent = `Estimated Weighted Grade: ${gradeData.finalGrade.toFixed(2)}%`;
             } else if (gradeData.warnings.includes("No class data.")) {
-                 overallGradeDisplay.textContent = 'Select a class to calculate grade.';
+                overallGradeDisplay.textContent = 'Select a class to calculate grade.';
             }
             else {
                 overallGradeDisplay.textContent = 'Weighted Grade: N/A (Check weights or add grades)';
@@ -292,13 +390,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (unweightedTotalDisplay) {
-            let unweightedText = `Unweighted Average of Category Percentages: ${gradeData.unweightedAverage.toFixed(2)}%. `;
-            unweightedText += `Total Weight Applied: ${gradeData.totalWeightApplied.toFixed(1)}%.`;
+            let unweightedHtml = `Unweighted Average of Category Percentages: ${gradeData.unweightedAverage.toFixed(2)}%. `;
+            unweightedHtml += `Total Weight Applied: ${gradeData.totalWeightApplied.toFixed(1)}%.`;
+            
             if (gradeData.warnings.length > 0 && !gradeData.warnings.includes("No class data.")) {
-                unweightedText += ` \nWarnings: ${gradeData.warnings.join('; ')}`;
+                // Wrap warnings in a span with style for red and bold
+                const warningMessages = gradeData.warnings.join('; ');
+                unweightedHtml += ` <br><span style="color: red; font-weight: bold;">Warnings: ${warningMessages}</span>`;
             }
-            unweightedTotalDisplay.textContent = unweightedText;
-            unweightedTotalDisplay.style.whiteSpace = 'pre-line'; // Allow line breaks for warnings
+            
+            unweightedTotalDisplay.innerHTML = unweightedHtml; // Use innerHTML to render the span
+            // No need for unweightedTotalDisplay.style.whiteSpace = 'pre-line'; as <br> handles line break
         }
     }
 
@@ -311,70 +413,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const methodSelector = categoryGroupDiv.querySelector('.category-calc-method');
         const selectedMethod = methodSelector ? methodSelector.value : 'totalPoints';
-        const result = calculateCategoryTotal(categoryName, selectedMethod); // Recalculates with drops/exclusions
-
-        // console.log(`%c[${categoryName}] In updateCategoryDisplay - AFTER calculateCategoryTotal call:`, "color: blue; font-weight: bold;");
-        // if (result) {
-        //     console.log(`[${categoryName}] Full 'result' object:`, result); // Log the whole object
-            
-        //     // Check for the specific property and its type
-        //     if (result.hasOwnProperty('droppedAssignmentOriginalIndices')) {
-        //         console.log(`[${categoryName}] 'droppedAssignmentOriginalIndices' IS an own property of result.`);
-        //         console.log(`[${categoryName}] Value of result.droppedAssignmentOriginalIndices:`, result.droppedAssignmentOriginalIndices);
-        //         if (result.droppedAssignmentOriginalIndices instanceof Set) {
-        //             console.log(`[${categoryName}] result.droppedAssignmentOriginalIndices IS a Set. Size: ${result.droppedAssignmentOriginalIndices.size}. Values: ${JSON.stringify([...result.droppedAssignmentOriginalIndices])}`);
-        //         } else {
-        //             console.warn(`%c[${categoryName}] result.droppedAssignmentOriginalIndices is NOT a Set. Type: ${typeof result.droppedAssignmentOriginalIndices}`, "color: orange;");
-        //         }
-        //     } else {
-        //         console.error(`%c[${categoryName}] CRITICAL: 'result' object DOES NOT HAVE 'droppedAssignmentOriginalIndices' property.`, "color: red; font-weight: bold;");
-        //         console.log(`[${categoryName}] Keys found in 'result' object:`, Object.keys(result));
-        //     }
-        // } else {
-        //     console.error(`%c[${categoryName}] CRITICAL: 'result' from calculateCategoryTotal is undefined or null!`, "color: red; font-weight: bold;");
-        // }
+        
+        // Recalculate to get fresh droppedAssignmentOriginalIndices and replacedAssignmentOriginalIndices
+        const freshCalcResult = calculateCategoryTotal(categoryName, selectedMethod);
 
         const totalDisplay = categoryGroupDiv.querySelector('.category-total-display');
-
         if (totalDisplay) {
-            let displayFormat = result.methodUsed === 'equalWeight' ?
-                `Category Average: ${result.percentage.toFixed(2)}% (from ${result.totalPossible} assignments)` :
-                `Category Total: ${result.totalScore.toFixed(2)} / ${result.totalPossible.toFixed(2)} (${result.percentage.toFixed(2)}%)`;
-            if (result.droppedCount > 0) {
-                displayFormat += ` (${result.droppedCount} dropped)`;
+            let displayFormat = freshCalcResult.methodUsed === 'equalWeight' ?
+                `Category Average: ${freshCalcResult.percentage.toFixed(2)}% (from ${freshCalcResult.totalPossible} assignments)` :
+                `Category Total: ${freshCalcResult.totalScore.toFixed(2)} / ${freshCalcResult.totalPossible.toFixed(2)} (${freshCalcResult.percentage.toFixed(2)}%)`;
+            if (freshCalcResult.droppedCount > 0) {
+                displayFormat += ` (${freshCalcResult.droppedCount} dropped)`;
             }
             totalDisplay.textContent = displayFormat;
-            if (!result.hasGradedItems && result.droppedCount === 0) { // only show if no other info
-                 totalDisplay.textContent += " (No graded items)";
+            if (!freshCalcResult.hasGradedItems && freshCalcResult.droppedCount === 0 && (!freshCalcResult.replacedAssignmentOriginalIndices || freshCalcResult.replacedAssignmentOriginalIndices.size ===0) ) {
+                totalDisplay.textContent += " (No graded items)";
             }
         }
 
         if (categoryGroupDiv) {
             const assignmentElements = categoryGroupDiv.querySelectorAll('.assignment');
-            const result = calculateCategoryTotal(categoryName, methodSelector ? methodSelector.value : 'totalPoints'); // Recalculate to get fresh droppedAssignmentOriginalIndices
 
             assignmentElements.forEach(asmEl => {
                 const originalIndex = parseInt(asmEl.dataset.assignmentOriginalIndex, 10);
                 if (isNaN(originalIndex) || !currentClassData || !currentClassData[originalIndex]) return;
 
-                const assignmentData = currentClassData[originalIndex];
+                const assignmentData = currentClassData[originalIndex]; // The master data
                 const isManuallyExcluded = assignmentData.isExcluded;
-                // Check if this assignment's originalIndex is in the set of automatically dropped ones
-                const isAutomaticallyDropped = result.droppedAssignmentOriginalIndices && result.droppedAssignmentOriginalIndices.has(originalIndex);
+                const isAutomaticallyDropped = freshCalcResult.droppedAssignmentOriginalIndices && freshCalcResult.droppedAssignmentOriginalIndices.has(originalIndex);
+                const isReplacedByPolicy = freshCalcResult.replacedAssignmentOriginalIndices && freshCalcResult.replacedAssignmentOriginalIndices.has(originalIndex);
 
-                // Remove all potentially conflicting classes first to ensure clean state
-                asmEl.classList.remove('excluded-assignment', 'dropped-assignment');
+                // Clear all status classes first
+                asmEl.classList.remove('excluded-assignment', 'dropped-assignment', 'replaced-assignment');
+                asmEl.title = ""; // Clear previous title
 
-                if (isAutomaticallyDropped) {
+                if (isReplacedByPolicy) {
+                    asmEl.classList.add('replaced-assignment');
+                    asmEl.title = `Original score: ${assignmentData.score !== null ? assignmentData.score : 'N/A'}. Score replaced with ${asm.effectiveScore !== null ? asm.effectiveScore.toFixed(2) : 'N/A'} by policy.`;
+                } else if (isAutomaticallyDropped) {
                     asmEl.classList.add('dropped-assignment');
-                } else if (isManuallyExcluded) { 
-                    // Only apply excluded if not dropped. Dropped status takes precedence for styling and calculation.
+                    asmEl.title = "This assignment was automatically dropped.";
+                } else if (isManuallyExcluded) {
                     asmEl.classList.add('excluded-assignment');
+                    asmEl.title = "This assignment is manually excluded from calculations.";
                 }
-                // If neither, it has no special styling class.
 
-                // Ensure the manual exclude icon is also correct (it might have been set during initial render)
-                // This logic should remain as it controls the manual exclusion toggle, independent of automatic drops.
+                // Update exclude icon (this is independent of the above mutually exclusive styling)
                 const excludeIcon = asmEl.querySelector('.toggle-exclude-assignment-icon');
                 if (excludeIcon) {
                     if (isManuallyExcluded) {
@@ -387,7 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-
         updateOverallGradeDisplay();
     }
 
@@ -411,6 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const classSettings = globalAllClassesData[classSettingsKey];
         if (!classSettings.categoryCalcMethods) classSettings.categoryCalcMethods = {};
         if (!classSettings.categoryDrops) classSettings.categoryDrops = {}; // Initialize drops
+        if (!classSettings.categoryReplacePolicies) classSettings.categoryReplacePolicies = {}; // Initialize replace policies
 
         console.log(`[GradeGrub]: Displaying grades for ${className}:`, currentClassData);
         gradesOutput.innerHTML = '';
@@ -435,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const categoryIdSafeForHtmlId = categoryName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
                 const categoryCalculationMethod = classSettings.categoryCalcMethods[categoryName] || 'totalPoints';
                 const numDrops = classSettings.categoryDrops[categoryName] || 0;
+                const categoryPolicySettings = classSettings.categoryReplacePolicies[categoryName] || { policy: 'none', finalAssignmentOriginalIndex: null };
 
                 const deleteIconUnicode = '&#128465;'; // Trash can icon
 
@@ -451,6 +536,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 outputHTML += `      </select></span>`;
                 outputHTML += `    <strong class="category-total-display">Calculating...</strong>`;
                 outputHTML += `    <span class="delete-category-icon delete-icon" data-category="${categoryName}" title="Delete Category ${categoryName}">${deleteIconUnicode}</span>`;
+                outputHTML += `    <div class="category-setting-item" style="margin-left: 10px;">`; // Wrapper for better layout
+                outputHTML += `        <label for="category-replace-policy-${categoryIdSafeForHtmlId}">Replace Policy: </label>`;
+                outputHTML += `        <select class="category-replace-policy" data-category="${categoryName}" id="category-replace-policy-${categoryIdSafeForHtmlId}">`;
+                outputHTML += `            <option value="none">None</option>`;
+                outputHTML += `            <option value="finalReplacesLowest">Final Replaces Lowest</option>`;
+                outputHTML += `            <option value="replaceLowWithCategoryAverage">Replace Low w/ Cat. Avg</option>`;
+                outputHTML += `        </select>`;
+                outputHTML += `    </div>`;
+                outputHTML += `    <div id="include-lowest-in-avg-container-${categoryIdSafeForHtmlId}" class="category-setting-item" style="display:none; margin-left: 10px; font-size: 0.9em;">`;
+                outputHTML += `        <input type="checkbox" class="include-lowest-in-avg-checkbox" data-category="${categoryName}" id="include-lowest-in-avg-${categoryIdSafeForHtmlId}">`;
+                outputHTML += `        <label for="include-lowest-in-avg-${categoryIdSafeForHtmlId}">Include lowest in avg. calculation</label>`;
+                outputHTML += `    </div>`;
+                outputHTML += `    <div id="final-assignment-selector-container-${categoryIdSafeForHtmlId}" class="category-setting-item" style="display:none; margin-left: 10px;">`;
+                outputHTML += `        <label for="final-assignment-selector-${categoryIdSafeForHtmlId}">Select Final: </label>`;
+                outputHTML += `        <select class="final-assignment-selector" data-category="${categoryName}" id="final-assignment-selector-${categoryIdSafeForHtmlId}">`;
+                outputHTML += `            <option value="">--Select Final Assignment--</option>`;
+                outputHTML += `        </select>`;
+                outputHTML += `    </div>`;
                 outputHTML += `  </div><div class="category-content">`;
 
                 const assignmentsInCategory = currentClassData
@@ -520,6 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
             attachInputListeners(className, classSettingsKey);
             loadCategoryWeights(className); // For weights
             loadCategorySettings(className);  // For drops
+            loadCategoryReplacePolicies(className); // For replace policies
             categories.forEach(categoryName => {
                 if (categoryName) updateCategoryDisplay(categoryName);
             });
@@ -1064,6 +1168,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function populateFinalAssignmentSelector(selectorElement, categoryName) { // categoryName is not strictly needed now but kept for consistency if called elsewhere
+        selectorElement.innerHTML = '<option value="">--Select Final Assignment--</option>';
+        if (!currentClassData) return;
+
+        currentClassData.forEach((asm, index) => {
+            // Only include non-manually-excluded assignments as potential "finals"
+            if (!asm.isExcluded) {
+                const option = document.createElement('option');
+                option.value = index; // originalIndex
+                let scoreDisplay = asm.score !== null && asm.score !== undefined ? asm.score : 'NG';
+                let possibleDisplay = asm.pointsPossible !== null && asm.pointsPossible !== undefined ? asm.pointsPossible : 'NP';
+                option.textContent = `${asm.name} (Cat: ${asm.category || 'Uncategorized'}) - (${scoreDisplay}/${possibleDisplay})`;
+                selectorElement.appendChild(option);
+            }
+        });
+    }
+
     function attachInputListeners(currentClassName, classSettingsKey) {
         gradesOutput.querySelectorAll('.editable-grade').forEach(input => {
             input.addEventListener('change', (event) => {
@@ -1239,14 +1360,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 whatIfResultsDisplay.innerHTML = ''; // Clear previous results if selection changes
             }
         });
-
         
         if (saveCutoffsButton) saveCutoffsButton.addEventListener('click', saveCustomCutoffs);
         if (resetCutoffsButton) resetCutoffsButton.addEventListener('click', resetDefaultCutoffs);
         if (calculateNeededForCutoffsButton) calculateNeededForCutoffsButton.addEventListener('click', displayNeededScoresForAllCutoffs);
         if (clearWhatIfSelectionButton) clearWhatIfSelectionButton.addEventListener('click', clearWhatIfSelection);
         
-        // If classSelector listener is here, ensure it calls populateWhatIfAssignmentSelector
          classSelector.addEventListener('change', (event) => {
             const selectedClass = event.target.value;
             currentClassNameForDisplay = selectedClass; // This is already set
@@ -1261,8 +1380,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (overallGradeContainer) overallGradeContainer.style.display = 'none';
                 if (gradeCutoffManagerDiv) gradeCutoffManagerDiv.style.display = 'none';
                 if (whatIfCalculatorDiv) whatIfCalculatorDiv.style.display = 'none';
-                // updateCategoryDisplay(); // Clear category display - this function might not exist or need adjustment
             }
+        });
+
+        gradesOutput.querySelectorAll('.category-replace-policy').forEach(select => {
+            if (select.dataset.listenerAttached === 'true') return;
+            select.addEventListener('change', (event) => {
+                const categoryName = event.target.dataset.category;
+                const policy = event.target.value;
+                const categoryIdSafeForHtmlId = categoryName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+                const finalAssignmentSelectorContainer = document.getElementById(`final-assignment-selector-container-${categoryIdSafeForHtmlId}`);
+                const includeLowestInAvgContainer = document.getElementById(`include-lowest-in-avg-container-${categoryIdSafeForHtmlId}`); // Get the new container
+
+                if (!globalAllClassesData[classSettingsKey].categoryReplacePolicies) {
+                    globalAllClassesData[classSettingsKey].categoryReplacePolicies = {};
+                }
+                if (!globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName]) {
+                    // Initialize with includeLowestInAvg, defaulting to false (current behavior)
+                    globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName] = { policy: 'none', finalAssignmentOriginalIndex: null, includeLowestInAvg: false };
+                }
+                globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].policy = policy;
+
+                // Show/hide final assignment selector
+                if (policy === 'finalReplacesLowest') {
+                    finalAssignmentSelectorContainer.style.display = 'inline-block'; // Or 'flex'
+                    populateFinalAssignmentSelector(finalAssignmentSelectorContainer.querySelector('.final-assignment-selector'), categoryName);
+                    const savedFinalIndex = globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].finalAssignmentOriginalIndex;
+                    if (savedFinalIndex !== null) {
+                        finalAssignmentSelectorContainer.querySelector('.final-assignment-selector').value = savedFinalIndex;
+                    }
+                } else {
+                    finalAssignmentSelectorContainer.style.display = 'none';
+                    // globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].finalAssignmentOriginalIndex = null; // Reset if policy changes from this
+                }
+
+                // Show/hide "Include Lowest in Avg" checkbox container
+                if (policy === 'replaceLowWithCategoryAverage') {
+                    includeLowestInAvgContainer.style.display = 'inline-block'; // Or 'flex'
+                    // Set checkbox state from saved settings
+                    const includeLowestCheckbox = includeLowestInAvgContainer.querySelector('.include-lowest-in-avg-checkbox');
+                    includeLowestCheckbox.checked = globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].includeLowestInAvg || false;
+                } else {
+                    includeLowestInAvgContainer.style.display = 'none';
+                    // globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].includeLowestInAvg = false; // Reset if policy changes from this
+                }
+
+                debouncedSaveAllClassesData();
+                updateCategoryDisplay(categoryName);
+            });
+            select.dataset.listenerAttached = 'true';
+        });
+
+        gradesOutput.querySelectorAll('.include-lowest-in-avg-checkbox').forEach(checkbox => {
+            if (checkbox.dataset.listenerAttached === 'true') return;
+            checkbox.addEventListener('change', (event) => {
+                const categoryName = event.target.dataset.category;
+                const isChecked = event.target.checked;
+
+                if (globalAllClassesData[classSettingsKey]?.categoryReplacePolicies?.[categoryName]) {
+                    globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].includeLowestInAvg = isChecked;
+                    debouncedSaveAllClassesData();
+                    updateCategoryDisplay(categoryName);
+                }
+            });
+            checkbox.dataset.listenerAttached = 'true';
+        });
+
+        gradesOutput.querySelectorAll('.final-assignment-selector').forEach(select => {
+            if (select.dataset.listenerAttached === 'true') return;
+            select.addEventListener('change', (event) => {
+                const categoryName = event.target.dataset.category;
+                const finalAssignmentOriginalIndex = event.target.value ? parseInt(event.target.value, 10) : null;
+
+                globalAllClassesData[classSettingsKey].categoryReplacePolicies[categoryName].finalAssignmentOriginalIndex = finalAssignmentOriginalIndex;
+                debouncedSaveAllClassesData();
+                updateCategoryDisplay(categoryName);
+            });
+            select.dataset.listenerAttached = 'true';
         });
 
 
@@ -1316,6 +1510,49 @@ document.addEventListener('DOMContentLoaded', () => {
             gradesOutput.querySelectorAll('.category-drops-input').forEach(input => {
                 const category = input.dataset.category;
                 input.value = classSettings.categoryDrops[category] || 0;
+            });
+        }
+    }
+
+    function loadCategoryReplacePolicies(currentClassName) {
+        const classSettingsKey = currentClassName + '_settings'; // Define classSettingsKey here
+        const classSettings = globalAllClassesData[classSettingsKey];
+
+        if (classSettings && classSettings.categoryReplacePolicies) {
+            document.querySelectorAll('.category-replace-policy').forEach(select => {
+                const categoryName = select.dataset.category;
+                const policySettings = classSettings.categoryReplacePolicies[categoryName];
+                const categoryIdSafeForHtmlId = categoryName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+                const finalAssignmentSelectorContainer = document.getElementById(`final-assignment-selector-container-${categoryIdSafeForHtmlId}`);
+                const includeLowestInAvgContainer = document.getElementById(`include-lowest-in-avg-container-${categoryIdSafeForHtmlId}`);
+                const includeLowestCheckbox = includeLowestInAvgContainer ? includeLowestInAvgContainer.querySelector('.include-lowest-in-avg-checkbox') : null;
+
+
+                if (policySettings) {
+                    select.value = policySettings.policy || 'none';
+
+                    if (policySettings.policy === 'finalReplacesLowest') {
+                        if (finalAssignmentSelectorContainer) finalAssignmentSelectorContainer.style.display = 'inline-block';
+                        const finalSelector = finalAssignmentSelectorContainer ? finalAssignmentSelectorContainer.querySelector('.final-assignment-selector') : null;
+                        if (finalSelector) {
+                            populateFinalAssignmentSelector(finalSelector, categoryName); // Repopulate to be sure
+                            finalSelector.value = policySettings.finalAssignmentOriginalIndex !== null ? policySettings.finalAssignmentOriginalIndex : "";
+                        }
+                    } else {
+                        if (finalAssignmentSelectorContainer) finalAssignmentSelectorContainer.style.display = 'none';
+                    }
+
+                    if (policySettings.policy === 'replaceLowWithCategoryAverage') {
+                        if (includeLowestInAvgContainer) includeLowestInAvgContainer.style.display = 'inline-block';
+                        if (includeLowestCheckbox) includeLowestCheckbox.checked = policySettings.includeLowestInAvg || false;
+                    } else {
+                        if (includeLowestInAvgContainer) includeLowestInAvgContainer.style.display = 'none';
+                    }
+                } else { // Default UI state if no policy settings for category
+                    select.value = 'none';
+                    if (finalAssignmentSelectorContainer) finalAssignmentSelectorContainer.style.display = 'none';
+                    if (includeLowestInAvgContainer) includeLowestInAvgContainer.style.display = 'none';
+                }
             });
         }
     }
