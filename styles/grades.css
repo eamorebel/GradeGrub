@@ -19,6 +19,10 @@ button {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.class-selector-container {
+  margin-bottom: 20px;
+}
+
 .grade-group {
   margin-bottom: 20px;
   padding: 10px;
@@ -124,6 +128,21 @@ button {
 }
 .category-content {
   padding-left: 15px; /* Indent assignments under category header */
+}
+
+#create-class-button {
+  /* Example styles */
+  background-color: #28a745; /* Green */
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 #delete-class-button {

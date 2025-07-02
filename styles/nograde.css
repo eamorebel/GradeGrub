@@ -5,3 +5,18 @@
 #app span {
     color: red;
 }
+
+#open-grades-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 1em;
+  margin-top: 20px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}

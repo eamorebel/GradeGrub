@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const classSelector = document.getElementById('class-selector');
     const gradesOutput = document.getElementById('grades-output');
+    const createClassButton = document.getElementById('create-class-button');
     const deleteClassButton = document.getElementById('delete-class-button');
     const overallGradeContainer = document.getElementById('overall-grade-container');
     const overallGradeDisplay = document.getElementById('overall-grade-display');
@@ -1616,6 +1617,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function handleCreateClass() {
+        const newClassName = prompt("Please enter the name for the new class:");
+        if (newClassName === null) { // User cancelled the prompt
+            return;
+        }
+        const trimmedClassName = newClassName.trim();
+        if (trimmedClassName === "") {
+            alert("Class name cannot be empty.");
+            return;
+        }
+        const existingClassNames = Object.keys(globalAllClassesData).filter(key => !key.endsWith('_weights') && !key.endsWith('_settings'));
+        if (existingClassNames.some(name => name.toLowerCase() === trimmedClassName.toLowerCase())) {
+            alert(`A class named "${trimmedClassName}" already exists.`);
+            return;
+        }
+        globalAllClassesData[trimmedClassName] = [];
+        globalAllClassesData[trimmedClassName + '_settings'] = {
+            categoryCalcMethods: {},
+            categoryDrops: {},
+            gradeCutoffs: { ...DEFAULT_GRADE_CUTOFFS },
+            categoryReplacePolicies: {}
+        };
+        globalAllClassesData[trimmedClassName + '_weights'] = {};
+        // Save and update UI
+        chrome.storage.local.set({ 'allClassesData': globalAllClassesData }, () => {
+            console.log(`New class "${trimmedClassName}" created and saved.`);
+            populateClassSelector(globalAllClassesData, trimmedClassName);
+        });
+    }
+
     chrome.storage.local.get('allClassesData', (result) => {
         globalAllClassesData = result.allClassesData || {};
         const urlParams = new URLSearchParams(window.location.search);
@@ -1644,5 +1675,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         deleteClassButton.addEventListener('click', handleDeleteClass);
+        createClassButton.addEventListener('click', handleCreateClass);
     });
 });
